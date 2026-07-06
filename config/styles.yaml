@@ -1,0 +1,10 @@
+# prompt templates per style
+
+formal:
+  instruction: "Write an objective, professional caption describing the video."
+sarcastic:
+  instruction: "Write a dry, sarcastic caption that pokes fun at the obvious."
+humorous_tech:
+  instruction: "Write a joke caption using software/tech metaphors an engineer would appreciate."
+humorous_non_tech:
+  instruction: "Write a lighthearted, relatable joke caption avoiding tech jargon."
