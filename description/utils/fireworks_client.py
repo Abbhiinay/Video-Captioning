@@ -5,7 +5,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-FIREWORKS_MODEL = "PLACEHOLDER_FIREWORKS_MODEL"
+FIREWORKS_MODEL = "accounts/fireworks/models/llama-v3p3-70b-instruct"
 
 def complete(system_prompt: str, user_prompt: str, model: str = None, max_tokens: int = 512) -> str:
     """
@@ -42,7 +42,8 @@ def complete(system_prompt: str, user_prompt: str, model: str = None, max_tokens
                 data = response.json()
                 try:
                     msg = data["choices"][0]["message"]
-                    content = msg.get("content") or msg.get("reasoning_content") or ""
+                    # llama-v3p3-70b-instruct returns text in "content" only (no separate reasoning_content channel)
+                    content = msg.get("content") or ""
                     return content
                 except (KeyError, IndexError) as parse_err:
                     raise RuntimeError(f"Unexpected response structure from Fireworks API: {data}") from parse_err

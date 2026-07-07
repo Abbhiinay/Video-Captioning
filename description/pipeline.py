@@ -1,8 +1,8 @@
 import os
 import logging
 from description.utils.io import download_video
-from src.preprocessing.extract_frames import extract_frames
-from src.perception.describe_video import describe_video
+from description.preprocessing.extract_frames import extract_frames
+from description.perception.describe_video import describe_video
 from description.style_engine.generate_captions import generate_captions
 
 logger = logging.getLogger(__name__)

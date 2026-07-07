@@ -36,9 +36,9 @@ Output (pipeline.py → data/outputs/*.json)
 | `eval/self_judge.py` | Self-check accuracy + tone match | generated captions | scores/notes |
 
 ## Models Used
-- Perception: [fill in on launch day] — Fireworks-hosted vision-language model
-- Style generation: [fill in on launch day] — Fireworks-hosted LLM
-- (Optional) Fine-tuned captioner: [fill in if used] — trained on [dataset name]
+- Perception (visual): **Gemini 2.0 Flash** — Google multimodal model, handles inline base64 JPEG frames via REST API
+- Perception (synthesis): **llama-v3p3-70b-instruct** (Fireworks) — synthesizes raw Gemini observations into a single neutral paragraph
+- Style generation: **llama-v3p3-70b-instruct** (Fireworks) — rewrites the neutral description into 4 distinct tones
 
 ## Key Design Decisions
 - Frame sampling rate: [fill in, e.g., 1 fps / scene-change detection]

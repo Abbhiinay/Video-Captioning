@@ -10,8 +10,8 @@ This document details the completed implementation and verification steps across
 * Configured environment variables:
   * `GEMINI_API_KEY`: [Configured]
   * `FIREWORKS_API_KEY`: [Configured]
-  * `GEMINI_MODEL`: `gemini-2.5-flash`
-  * `FIREWORKS_LLM_MODEL`: `accounts/fireworks/models/gpt-oss-120b` (Chosen as it handles strict formatting constraints without emitting reasoning thoughts in the output).
+  * `GEMINI_MODEL`: `gemini-2.0-flash`
+  * `FIREWORKS_LLM_MODEL`: `accounts/fireworks/models/llama-v3p3-70b-instruct`
 
 ### Phase 1 — Perception Pipeline
 * **Frame Extraction (`extract_frames.py`)**: Implemented robust extraction sampling 5 frames evenly spaced. Includes `ffmpeg-python` check and a full fallback to `OpenCV` to handle local development environment compatibility.
