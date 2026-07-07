@@ -6,7 +6,6 @@
 # Project Specific Data & Video Media
 data/clips/
 data/outputs/
-description/
 
 # Python Runtime & Caching
 __pycache__/

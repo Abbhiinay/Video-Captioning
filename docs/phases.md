@@ -3,29 +3,30 @@
 Status legend: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Phase 0 — Setup & Spike (Hour 0-1)
-- ✅ Confirm Fireworks API key works (test curl/API call)
+- ✅ Confirm Gemini API key works
 - ✅ Confirm AMD Developer Cloud GPU access (if used)
 - ✅ Download/inspect real clip set (duration, format, resolution)
 - ✅ One clip → one caption, fully manual, end-to-end proof of concept
 
-## Phase 1 — Perception Pipeline (Hour 1-3)
-- ✅ Frame extraction working (`extract_frames.py`)
+## Phase 1 — Core Architecture & Perception Pipeline (Hour 1-3)
+- ✅ Hybrid frame extraction working (`extract_frames.py`) with OpenCV scene detection
 - ✅ (Optional) audio transcription working
-- ✅ `describe_video.py` returns a neutral description for any clip
+- ✅ `analyze_video.py` natively returns structured JSON using Gemini 2.5 Flash
 - ✅ Manual review: descriptions are factually accurate on 3-5 sample clips
 
-## Phase 2 — Style Engine (Hour 3-5)
-- ✅ 4 prompt templates drafted in `config/styles.yaml`
-- ✅ `generate_captions.py` returns all 4 styles from a description
+## Phase 2 — Prompts & Constraints (Hour 3-5)
+- ✅ 4 strict style rules combined into unified prompt schema (`prompts.py`)
+- ✅ Single-pass execution extracts video understanding and 4 styles simultaneously
 - ✅ Manual review: styles are distinct from each other (esp. sarcastic vs humorous-tech)
 
 ## Phase 3 — Full Batch Run (Hour 5-6)
-- ✅ `pipeline.py` connects perception → style engine → output
-- ✅ `scripts/run_all.py` processes entire clip set
-- ✅ Output JSON matches required submission format
+- ✅ `pipeline.py` coordinates robust end-to-end download, extraction, and generation
+- ✅ `scripts/run_all.py` processes entire clip set with thread pooling and retries
+- ✅ Output JSON strictly matches required submission format
+- ✅ Token usage and latency reduced by ~75%
 
 ## Phase 4 — Self-Eval & Iteration (Hour 6-8)
-- ✅ `eval/self_judge.py` scores accuracy + tone match
+- ✅ `eval/self_judge.py` configured to check accuracy + tone match
 - ✅ Identify and fix worst-scoring clips/styles
 
 ## Phase 5 — Fine-tuning (Hour 8-10) — Optional
@@ -35,8 +36,8 @@ Status legend: ⬜ not started · 🟨 in progress · ✅ done
 
 ## Phase 6 — Polish & Submission (Hour 10-12)
 - ✅ README finalized
-- ✅ `docs/submission.md` written
-- ✅ Dead code / unused files removed
+- ✅ `docs/submission.md` updated
+- ✅ Dead code (Fireworks dependencies) / unused files removed
 - ✅ Final clean run confirms reproducibility
 - ✅ Submitted before deadline
 

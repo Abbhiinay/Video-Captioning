@@ -61,20 +61,29 @@ def download_video(url: str) -> str:
         raise
 
     logger.info(f"Downloading video from {url} to {temp_path}...")
-    try:
-        # Stream the download to avoid holding large files in memory
-        with requests.get(url, stream=True, timeout=60.0) as r:
-            r.raise_for_status()
-            with open(temp_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-        return temp_path
-    except Exception as e:
-        logger.error(f"Failed to download video from {url}: {e}")
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception:
-                pass
-        raise RuntimeError(f"Failed to download video from {url}: {e}") from e
+    
+    max_attempts = 3
+    delay = 2.0
+    for attempt in range(max_attempts):
+        try:
+            # Stream the download to avoid holding large files in memory
+            with requests.get(url, stream=True, timeout=60.0) as r:
+                r.raise_for_status()
+                with open(temp_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            return temp_path
+        except Exception as e:
+            logger.error(f"Failed to download video from {url} (Attempt {attempt + 1}/{max_attempts}): {e}")
+            if attempt < max_attempts - 1:
+                import time
+                time.sleep(delay)
+                delay *= 2.0
+            else:
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
+                raise RuntimeError(f"Failed to download video from {url} after {max_attempts} attempts: {e}") from e

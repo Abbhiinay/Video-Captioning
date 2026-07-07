@@ -1,9 +1,9 @@
 import os
 import logging
 from description.utils.io import download_video
-from description.preprocessing.extract_frames import extract_frames
-from description.perception.describe_video import describe_video
-from description.style_engine.generate_captions import generate_captions
+from src.preprocessing.extract_frames import extract_frames
+from src.perception.analyze_video import analyze_video
+from config.settings import FRAME_COUNT
 
 logger = logging.getLogger(__name__)
 
@@ -40,37 +40,35 @@ def process_task(task: dict) -> dict:
             logger.error(f"Task {task_id}: Downloading video failed: {e}")
             return result
 
-        # Step 2: Extract Frames (default N=5)
+        # Step 2: Extract Frames
         try:
-            # We sample 5 frames by default
-            frame_paths = extract_frames(video_path, n=5)
+            frame_paths = extract_frames(video_path, n=FRAME_COUNT)
         except Exception as e:
             logger.error(f"Task {task_id}: Frame extraction failed: {e}")
             return result
 
-        # Step 3: Describe Video (Generates neutral description. Optional transcript is None here)
+        # Step 3: Analyze Video and Generate Captions in one API call
         try:
-            description = describe_video(frame_paths, transcript=None)
-        except Exception as e:
-            logger.error(f"Task {task_id}: Factual description generation failed: {e}")
-            return result
-
-        # Step 4: Rewrite description in requested styles
-        if not description:
-            logger.error(f"Task {task_id}: Visual description was empty.")
-            return result
-
-        try:
-            captions = generate_captions(description, styles)
+            # We pass transcript=None for now (audio support can be integrated here later if needed)
+            analysis_result = analyze_video(frame_paths, transcript=None, styles=styles)
+            
+            # Extract captions from the structured JSON
+            captions = analysis_result.get("captions", {})
             for style in styles:
                 result["captions"][style] = captions.get(style, "")
+                
+            # Log video understanding for debugging/insights
+            video_understanding = analysis_result.get("video_understanding", {})
+            logger.debug(f"Task {task_id} video understanding: {video_understanding}")
+                
         except Exception as e:
-            logger.error(f"Task {task_id}: Style engine generation failed: {e}")
+            logger.error(f"Task {task_id}: Analysis and caption generation failed: {e}")
+            return result
 
     except Exception as e:
         logger.error(f"Task {task_id}: Unexpected error in pipeline: {e}")
     finally:
-        # Cleanup temporary files to prevent disk usage spikes
+        # Cleanup temporary files
         if video_path and os.path.exists(video_path):
             try:
                 os.remove(video_path)

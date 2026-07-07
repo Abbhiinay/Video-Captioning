@@ -1,0 +1,24 @@
+# Version control
+.git
+.gitignore
+
+# Secrets — never bake API keys into the image
+.env
+.env.*
+*.env
+
+# Dev & test artifacts (not needed at runtime)
+data/
+docs/
+notebooks/
+eval/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Editor files
+.DS_Store
+Thumbs.db
+*.md

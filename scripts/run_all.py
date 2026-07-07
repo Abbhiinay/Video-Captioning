@@ -25,13 +25,10 @@ logger = logging.getLogger(__name__)
 def main():
     # 1. Validate environment variables (fail fast)
     gemini_key = os.getenv("GEMINI_API_KEY")
-    fireworks_key = os.getenv("FIREWORKS_API_KEY")
 
     missing = []
     if not gemini_key:
         missing.append("GEMINI_API_KEY")
-    if not fireworks_key:
-        missing.append("FIREWORKS_API_KEY")
 
     if missing:
         logger.error(f"Initialization Failed: Missing required environment variable(s): {', '.join(missing)}")

@@ -9,28 +9,28 @@ This document details the completed implementation and verification steps across
 * Set up the local development environment configurations and created a `.env` file to hold API keys and model specifications.
 * Configured environment variables:
   * `GEMINI_API_KEY`: [Configured]
-  * `FIREWORKS_API_KEY`: [Configured]
-  * `GEMINI_MODEL`: `gemini-2.0-flash`
-  * `FIREWORKS_LLM_MODEL`: `accounts/fireworks/models/llama-v3p3-70b-instruct`
+  * `GEMINI_MODEL`: `gemini-2.5-flash`
+  * `FRAME_COUNT`: `5`
+  * `ENABLE_SCENE_DETECTION`: `true`
 
-### Phase 1 — Perception Pipeline
-* **Frame Extraction (`extract_frames.py`)**: Implemented robust extraction sampling 5 frames evenly spaced. Includes `ffmpeg-python` check and a full fallback to `OpenCV` to handle local development environment compatibility.
-* **Gemini Client (`gemini_client.py`)**: Created standard REST wrapper using raw HTTP POST requests to inline base64 image data to the Gemini API, equipped with a 4-attempt exponential backoff retry system.
-* **Video Description Synthesis (`describe_video.py`)**: Coordinates step-by-step:
-  1. Sends frame list to Gemini to get visual observations.
-  2. Sends observations to Fireworks to synthesize a single neutral, factual, plain-text summary paragraph.
+### Phase 1 — Core Architecture & Perception Pipeline
+* **Hybrid Frame Extraction (`extract_frames.py`)**: Implemented hybrid extraction sampling 5 frames. Calculates OpenCV histogram differences to identify 2 scene-change frames and combines them with 3 evenly-spaced frames.
+* **Gemini Client (`gemini_client.py`)**: Created standard REST wrapper using raw HTTP POST requests to inline base64 image data to the Gemini API, equipped with a 4-attempt exponential backoff retry system. Natively enforces structured `application/json` output schemas.
+* **Unified Video Analysis (`analyze_video.py`)**: Replaced the sequential multi-step pipeline with a single unified call to Gemini 2.5 Flash. Coordinates:
+  1. Sends frame list and strict JSON schema rules to Gemini.
+  2. Receives a structured JSON payload containing video understanding metadata and all 4 perfectly-formatted styles simultaneously.
 
-### Phase 2 — Style Engine
-* **Prompt Builder (`prompts.py`)**: Parses style rules from `config/styles.yaml` and constructs clean, concise system and user prompts.
-* **Style Engine (`generate_captions.py`)**: Handles style generation requests independently. Generates only the styles defined in the input task, catching errors per-style to ensure a single style generation failure doesn't ruin the entire batch output.
+### Phase 2 — Prompts & Constraints
+* **Prompt Builder (`prompts.py`)**: Defines a highly constrained system prompt enforcing limits (e.g. 25 words for formal, no emojis, software-engineering keywords for humorous_tech).
+* **Style Engine**: Removed entirely. The generation of the 4 styles is now executed inherently during the Phase 1 perception step, achieving a massive ~75% token reduction.
 
 ### Phase 3 — Full Batch Run
-* **Pipeline Orchestrator (`pipeline.py`)**: Manages the end-to-end task run (downloading -> frame extraction -> perception -> styling) and guarantees temporary video and frame file clean-up in a `finally` block.
+* **Pipeline Orchestrator (`pipeline.py`)**: Manages the end-to-end task run (downloading with chunked stream and retries -> hybrid frame extraction -> perception/styling in one pass) and guarantees temporary video and frame file clean-up in a `finally` block.
 * **Concurrency Coordinator (`scripts/run_all.py`)**: Entry point loading tasks from `/input/tasks.json` and processing them in parallel using a ThreadPoolExecutor (max workers=3) to respect rate limits and keep the runtime within 10 minutes.
 * **Dockerfile Setup**: Configured a `python:3.11-slim` container installing system `ffmpeg`, installing package dependencies, and running the `run_all.py` script.
 
 ### Phase 4 — Self-Eval & Iteration
-* **Sanity Checks (`eval/self_judge.py`)**: Implemented an automated judge script calling the Fireworks LLM to score the generated captions (1-5 scale) on how well they align with the requested style.
+* **Sanity Checks (`eval/self_judge.py`)**: Implemented an automated judge script calling the Gemini API to score the generated captions (1-5 scale) on how well they align with the requested style.
 * **Style Prompt Iteration**: Prompt formatting was tightened to ensure the LLM strictly emits the final caption string without introductory preambles or planning thoughts.
 
 ---
