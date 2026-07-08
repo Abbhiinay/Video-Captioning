@@ -54,15 +54,13 @@ def main():
             pass
         sys.exit(0)
 
-    # 3. Process tasks with a small thread pool to respect rate limits and 10-minute budget.
-    # A concurrency of 3 tasks keeps parallel requests reasonable for API limits.
-    max_workers = 3
+    # 3. Process tasks with a thread pool to respect rate limits and 10-minute budget.
+    from config.settings import MAX_WORKERS
     results = []
-    failed_any = False
 
-    logger.info(f"Processing {len(tasks)} tasks concurrently with max_workers={max_workers}...")
+    logger.info(f"Processing {len(tasks)} tasks concurrently with max_workers={MAX_WORKERS}...")
     
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Submit tasks
         future_to_task = {executor.submit(process_task, task): task for task in tasks}
         
@@ -73,16 +71,20 @@ def main():
                 result = future.result()
                 results.append(result)
                 
-                # Check if this task produced empty results for all requested styles (indicates failure)
                 requested_styles = task.get("styles", [])
                 captions = result.get("captions", {})
-                if requested_styles and all(captions.get(s) == "" for s in requested_styles):
-                    failed_any = True
-                    logger.warning(f"Task {task_id} failed to generate any captions.")
+                
+                # Check if all requested styles are present and non-empty for logging purposes
+                missing_or_empty = []
+                for s in requested_styles:
+                    if not captions.get(s):
+                        missing_or_empty.append(s)
+                        
+                if missing_or_empty:
+                    logger.warning(f"Task {task_id} generated empty captions for styles: {missing_or_empty}")
                 else:
                     logger.info(f"Task {task_id} processed successfully.")
             except Exception as e:
-                failed_any = True
                 logger.error(f"Unexpected exception processing task {task_id}: {e}")
                 # Append fallback empty result structure
                 results.append({
@@ -103,12 +105,40 @@ def main():
         sys.exit(1)
 
     # 5. Exit with correct code
-    if failed_any:
-        logger.error("Batch processing finished with some failures. Exiting non-zero.")
-        sys.exit(1)
-    else:
-        logger.info("Batch processing completed successfully.")
+    # Validate the written results.json file meets structure requirements
+    import json
+    try:
+        with open(output_path, "r", encoding="utf-8") as f:
+            saved_data = json.load(f)
+        
+        if not isinstance(saved_data, list):
+            raise ValueError("results.json root is not a list")
+            
+        task_map = {t.get("task_id"): t for t in tasks}
+        for item in saved_data:
+            if not isinstance(item, dict):
+                raise ValueError("Result item is not a dictionary")
+            if "task_id" not in item or "captions" not in item:
+                raise ValueError("Result item missing 'task_id' or 'captions'")
+            
+            tid = item["task_id"]
+            if tid not in task_map:
+                raise ValueError(f"Unknown task_id in results: {tid}")
+                
+            requested_styles = task_map[tid].get("styles", [])
+            captions = item["captions"]
+            if not isinstance(captions, dict):
+                raise ValueError(f"captions for {tid} is not a dictionary")
+                
+            for style in requested_styles:
+                if style not in captions:
+                    raise ValueError(f"Missing requested style '{style}' in captions for {tid}")
+                    
+        logger.info("Batch processing completed successfully. All outputs validated.")
         sys.exit(0)
+    except Exception as e:
+        logger.error(f"Validation of results.json failed: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

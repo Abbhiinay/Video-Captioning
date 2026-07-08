@@ -15,28 +15,47 @@ load_dotenv()
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-def rate_caption_with_gemini(style: str, caption: str) -> str:
+def rate_caption_with_gemini(style: str, caption: str) -> dict:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return "Error: GEMINI_API_KEY missing"
+        return {"error": "GEMINI_API_KEY missing"}
         
     model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     
     prompt = (
-        "You are an AI evaluator. Evaluate whether the caption fits the requested style on a scale of 1-5. "
-        "Output ONLY a single line in the following format: [Score: X/5] - Reason: <brief note>\n\n"
+        "You are an AI evaluator. Evaluate whether the caption fits the requested style and accurately describes a scene.\n"
+        "Output ONLY a valid JSON object with EXACTLY these keys:\n"
+        "{\n"
+        '  "caption_accuracy": <float 0.0 to 1.0>,\n'
+        '  "style_match": <float 0.0 to 1.0>,\n'
+        '  "overall": <float 0.0 to 1.0>,\n'
+        '  "reason": "<brief note>"\n'
+        "}\n\n"
         f"Style Requested: {style}\nCaption: {caption}"
     )
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"responseMimeType": "application/json"}
+    }
     headers = {"Content-Type": "application/json"}
     
     response = requests.post(url, json=payload, headers=headers, timeout=30)
     response.raise_for_status()
     
     data = response.json()
-    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    try:
+        parsed = json.loads(text)
+        return {
+            "caption_accuracy": parsed.get("caption_accuracy", 0.0),
+            "style_match": parsed.get("style_match", 0.0),
+            "overall": parsed.get("overall", 0.0),
+            "reason": parsed.get("reason", "unknown")
+        }
+    except Exception as e:
+        return {"error": f"Failed to parse eval response: {e}"}
 
 def main():
     results_path = os.getenv("OUTPUT_RESULTS_PATH", "data/outputs/results.json")
@@ -60,7 +79,12 @@ def main():
                 
             try:
                 rating = rate_caption_with_gemini(style, caption)
-                print(f"  [{style}]: \"{caption}\"\n    -> {rating}")
+                if "error" in rating:
+                    print(f"  [{style}]: \"{caption}\"\n    -> Evaluation failed: {rating['error']}")
+                else:
+                    print(f"  [{style}]: \"{caption}\"\n"
+                          f"    -> Acc: {rating['caption_accuracy']} | Style: {rating['style_match']} | Overall: {rating['overall']}\n"
+                          f"    -> Reason: {rating['reason']}")
             except Exception as e:
                 print(f"  [{style}]: \"{caption}\"\n    -> Evaluation failed: {e}")
 

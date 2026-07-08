@@ -2,85 +2,98 @@
 
 An AI agent that watches a video clip and generates captions in multiple styles.
 
-Recently **refactored for extreme efficiency**, this agent now leverages a **single unified Gemini 2.5 Flash API call** to perform both visual perception and multi-style caption generation simultaneously.
+Built on a **single unified Gemini 2.5 Flash API call** that performs visual
+perception and multi-style caption generation simultaneously.
 
 ---
 
-## ⚡ Architecture Improvements & Token Savings
+## Architecture Overview
 
-The pipeline was redesigned to achieve:
-- **~70% Token Reduction:** Eliminated redundant context windows (previously 5 API calls per video, now just 1).
-- **Lower Latency:** One network request instead of a sequential waterfall of 5 requests.
-- **Hybrid Scene Detection:** Uses OpenCV to calculate histogram differences, extracting both uniform intervals and distinct scene changes.
-- **Strict JSON Enforcement:** Leverages Gemini's native `application/json` output to guarantee perfect schema adherence without intermediate parsers.
-
-### How It Works (Before vs After)
-
-**Before (Legacy Pipeline):**
 ```
-Video → Extract 5 Frames → Gemini (Perception) → Fireworks (Neutral Summary)
-                                                 → Fireworks (Formal)
-                                                 → Fireworks (Sarcastic)
-                                                 → Fireworks (Humorous Tech)
-                                                 → Fireworks (Humorous Non-Tech)
+Video Clip
+     │
+     ▼
+Hybrid Frame Extraction  (OpenCV — uniform anchors + FPS-driven scene detection)
+     │
+     ▼
+Gemini 2.5 Flash         (Single API call — structured JSON output)
+     │
+     ▼
+JSON Validation & Repair (Key validation · Retry-on-bad-JSON · Graceful fallback)
+     │
+     ▼
+results.json             { task_id, captions: { formal, sarcastic, … } }
 ```
-*(Total: 1 Gemini call + 5 Fireworks calls)*
 
-**After (New Pipeline):**
-```
-Video
-  ↓
-Hybrid Frame Extraction (OpenCV Scene Detection)
-  ↓
-Gemini 2.5 Flash (Single API Call with strict JSON schema)
-  ↓
-Structured Output { video_understanding, captions: { formal, sarcastic, ... } }
-  ↓
-/output/results.json
-```
-*(Total: 1 Gemini call)*
+### Single-Pass Design
 
----
+The pipeline consolidates visual perception and all four caption styles into
+one Gemini API call. This means:
 
-## Supported Caption Styles
+- **Substantially fewer API calls** compared to a sequential per-style approach.
+- **Reduced latency** — one network round-trip instead of a waterfall.
+- **Reduced token usage** — video context is transmitted once, not once per style.
 
-| Style | Description | Length Limit |
+
+## Caption Styles
+
+| Style | Description | Length |
 |---|---|---|
-| `formal` | Objective, factual, concise, no emojis | Max 25 words |
+| `formal` | Objective, factual, single sentence | 15–18 words (max 20) |
 | `sarcastic` | Witty, dry, playful exaggeration | Max 20 words |
-| `humorous_tech` | Software engineering references (Git, Docker, etc.) | Max 20 words |
-| `humorous_non_tech` | Relatable everyday humor (office, family, etc.) | Max 20 words |
+| `humorous_tech` | Software engineering metaphors anchored to visible content | Max 20 words |
+| `humorous_non_tech` | Relatable everyday humor anchored to visible content | Max 20 words |
+
+### Quality Guarantees
+
+- **Anti-hallucination**: The prompt explicitly forbids inventing objects, people,
+  locations, or actions not visible in the frames. Uncertain elements are described
+  as "unknown".
+- **Fact consistency**: All four captions describe the same scene — only tone
+  differs. No style may introduce new facts or assumptions.
+- **Grounded humor**: Humorous captions must reference at least one specific
+  visible object or action from the video. Generic reusable jokes are rejected
+  by prompt design.
+- **Apparent emotion only**: The `apparent_emotion` field describes visible
+  facial expressions or body language — never inferred internal states.
+- **JSON repair retry**: If Gemini returns malformed JSON, a targeted repair
+  prompt is sent automatically. If that also fails, an empty-caption result
+  is returned gracefully — the batch never crashes.
 
 ---
 
-## Setup & Configuration
+## Setup
 
-### 1. Requirements
+### Requirements
 - Python **3.11+**
-- (Optional) `ffmpeg` installed and on system PATH
+- `ffmpeg` installed and on system PATH (optional, used by some codecs)
 
-### 2. Install dependencies
+### 1. Install dependencies
 ```bash
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-# source .venv/bin/activate  # macOS/Linux
+.venv\Scripts\activate         # Windows
+# source .venv/bin/activate    # macOS / Linux
 pip install -r requirements.txt
 ```
 
-### 3. Environment Variables
-Copy `.env.example` to `.env` and configure:
+### 2. Configure environment
+Copy `.env.example` to `.env` and fill in your values:
 ```env
-# API Keys
 GEMINI_API_KEY=your_gemini_api_key_here
-
-# Model Configurations
 GEMINI_MODEL=gemini-2.5-flash
 
-# Video Processing Settings
 FRAME_COUNT=5
 ENABLE_SCENE_DETECTION=true
 ENABLE_AUDIO=false
 ```
+
+> [!IMPORTANT]
+> **Security Reminder:**
+> - Never commit your `.env` file to version control.
+> - Use `.env.example` as a template for other environments.
+> - Rotate your API keys immediately if they are ever exposed.
+> - Do not print or log secrets in your application logs.
+
 
 ---
 
@@ -88,14 +101,13 @@ ENABLE_AUDIO=false
 
 ### Batch Run (Production)
 
-This is the primary mode. It reads from `/input/tasks.json` and writes to `/output/results.json`.
+Reads from `/input/tasks.json`, writes to `/output/results.json`.
 
-**1. Run the batch script:**
 ```bash
 python scripts/run_all.py
 ```
 
-Override paths if needed:
+Override paths:
 ```bash
 $env:INPUT_TASKS_PATH="data/tasks.json"
 $env:OUTPUT_RESULTS_PATH="data/outputs/results.json"
@@ -103,7 +115,7 @@ python scripts/run_all.py
 ```
 
 ### Output Format
-The resulting `/output/results.json` strictly matches the required submission format:
+
 ```json
 [
   {
@@ -122,13 +134,11 @@ The resulting `/output/results.json` strictly matches the required submission fo
 
 ## Docker
 
-### Build the image
 ```bash
+# Build
 docker build -t video-captioning:latest .
-```
 
-### Run the container locally
-```bash
+# Run
 docker run \
   -e GEMINI_API_KEY=your_key_here \
   -v $(pwd)/data:/input \
@@ -143,21 +153,25 @@ docker run \
 ```
 Video-Captioning/
 ├── config/
-│   └── settings.py              # Centralized environment configuration
+│   └── settings.py              # Centralised environment configuration
 ├── description/
 │   ├── pipeline.py              # End-to-end task orchestrator
 │   ├── style_engine/
-│   │   └── prompts.py           # Unified JSON prompt builder
+│   │   └── prompts.py           # Unified JSON prompt builder + repair prompt
 │   └── utils/
-│       ├── gemini_client.py     # Gemini REST API wrapper (application/json)
+│       ├── gemini_client.py     # Gemini REST API wrapper (retries, JSON mode)
 │       └── io.py                # Task loader, video downloader, result writer
 ├── src/
 │   ├── perception/
-│   │   └── analyze_video.py     # Invokes Gemini for perception + captions
+│   │   └── analyze_video.py     # JSON parsing, retry, key validation, defaults
 │   └── preprocessing/
-│       └── extract_frames.py    # Hybrid scene detection & sampling
+│       └── extract_frames.py    # Hybrid FPS-driven scene detection & sampling
 ├── scripts/
-│   └── run_all.py               # Batch entry point
+│   └── run_all.py               # Batch entry point (ThreadPoolExecutor)
+├── docs/
+│   ├── architechture.md         # Architecture design decisions
+│   ├── phases.md                # Build phase log
+│   └── submission.md            # Integration walkthrough & verification
 ├── Dockerfile                   # Production Docker image
 └── requirements.txt             # Python dependencies
 ```

@@ -1,7 +1,14 @@
-# Environment Variables & Secrets (CRITICAL)
+# Environment Variables & Secrets
 .env
 .env.local
+.env.*
 *.env
+
+# IDE / Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # Project Specific Data & Video Media
 data/clips/
@@ -13,10 +20,6 @@ __pycache__/
 *$py.class
 .pytest_cache/
 .python-version
-
-# Jupyter Notebooks Cache
-.ipynb_checkpoints/
-*/.ipynb_checkpoints/
 
 # Virtual Environments
 .venv/
