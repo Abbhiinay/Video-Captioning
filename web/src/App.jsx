@@ -36,31 +36,59 @@ export default function App() {
     const formData = new FormData();
     formData.append("video", file);
 
-    // Simulate step progression
-    const stepTimers = [
-      setTimeout(() => setLoadingStep(1), 2000),
-      setTimeout(() => setLoadingStep(2), 6000),
-      setTimeout(() => setLoadingStep(3), 10000),
-    ];
-
     try {
-      const response = await fetch(`${API_BASE}/api/caption`, {
-        method: "POST",
-        body: formData,
+      const xhr = new XMLHttpRequest();
+      
+      const uploadPromise = new Promise((resolve, reject) => {
+        let processingTimers = [];
+        let uploadFinished = false;
+        
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            if (event.loaded < event.total) {
+              setLoadingStep(0);
+            } else if (!uploadFinished) {
+              uploadFinished = true;
+              setLoadingStep(1);
+              // Start timers for processing steps only AFTER upload is complete
+              processingTimers = [
+                setTimeout(() => setLoadingStep(2), 6000),
+                setTimeout(() => setLoadingStep(3), 15000),
+              ];
+            }
+          }
+        };
+
+        xhr.onload = () => {
+          processingTimers.forEach(clearTimeout);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch (e) {
+              reject(new Error("Invalid JSON response from server"));
+            }
+          } else {
+            let detail = `Server error: ${xhr.status}`;
+            try {
+              detail = JSON.parse(xhr.responseText).detail || detail;
+            } catch (e) {}
+            reject(new Error(detail));
+          }
+        };
+
+        xhr.onerror = () => {
+          processingTimers.forEach(clearTimeout);
+          reject(new Error("Network error. The upload took too long or was blocked."));
+        };
+
+        xhr.open("POST", `${API_BASE}/api/caption`);
+        xhr.send(formData);
       });
 
-      stepTimers.forEach(clearTimeout);
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || `Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await uploadPromise;
       setCaptions(data.captions || {});
       setAppState("results");
     } catch (err) {
-      stepTimers.forEach(clearTimeout);
       console.error("Caption generation failed:", err);
       setErrorMsg(err.message || "Something went wrong. Please try again.");
       setAppState("error");

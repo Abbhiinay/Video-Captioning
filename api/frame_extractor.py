@@ -62,55 +62,8 @@ def _extract_frames_sync(video_path: str, n: int = 5) -> list[str]:
 
     selected: set[int] = set()
 
-    # Hybrid mode: 3 anchors + scene-change frames
-    if n >= 3:
-        anchor_indices = _uniform_indices(total_frames, 3)
-        selected.update(anchor_indices)
-
-        slots_remaining = n - len(selected)
-        if slots_remaining > 0:
-            # Sample candidates at ~0.5s intervals
-            step = max(1, int(round(fps * 0.5)))
-            candidate_count = max(10, min(120, total_frames // step))
-            candidate_indices = _uniform_indices(total_frames, candidate_count)
-
-            # Compute histogram diffs
-            diffs = []
-            prev_frame = None
-            for idx in candidate_indices:
-                cap.set(cv2.CAP_PROP_POS_FRAMES, float(idx))
-                ret, frame = cap.read()
-                if not ret or frame is None:
-                    prev_frame = None
-                    continue
-                if prev_frame is not None:
-                    corr = _histogram_correlation(prev_frame, frame)
-                    diffs.append((corr, idx))
-                prev_frame = frame
-
-            diffs.sort(key=lambda x: x[0])
-            min_spacing = max(1, int(round(fps * 0.5)))
-
-            for _corr, idx in diffs:
-                if len(selected) >= n:
-                    break
-                if idx not in selected:
-                    too_close = any(abs(idx - s) < min_spacing for s in selected)
-                    if not too_close:
-                        selected.add(idx)
-
-        # Backfill if needed
-        still_needed = n - len(selected)
-        if still_needed > 0:
-            for idx in _uniform_indices(total_frames, n):
-                if still_needed <= 0:
-                    break
-                if idx not in selected:
-                    selected.add(idx)
-                    still_needed -= 1
-    else:
-        selected.update(_uniform_indices(total_frames, n))
-
+    # Fast mode: uniform sampling only (skips heavy scene detection)
+    selected.update(_uniform_indices(total_frames, n))
     sorted_indices = sorted(selected)
     logger.info(f"Selected frame indices: {sorted_indices}")
 
