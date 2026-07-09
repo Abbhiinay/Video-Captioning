@@ -1,0 +1,16 @@
+# render.yaml
+services:
+  - type: web
+    name: video-captioning-api
+    runtime: python
+    buildCommand: "pip install -r api/requirements.txt"
+    startCommand: "uvicorn main:app --app-dir api --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false          # Render will prompt you to fill this in
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: FRAME_COUNT
+        value: "5"
+      - key: ENABLE_SCENE_DETECTION
+        value: "true"
