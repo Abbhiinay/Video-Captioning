@@ -26,7 +26,7 @@ COPY description/      ./description/
 COPY src/              ./src/
 COPY scripts/          ./scripts/
 COPY requirements.txt  ./requirements.txt
-COPY .env              ./.env
+COPY .env*             ./
 
 # Create the run_all.py entrypoint at root
 RUN cp scripts/run_all.py run_all.py
