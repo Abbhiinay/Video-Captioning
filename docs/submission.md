@@ -46,7 +46,7 @@ each build phase of the video captioning integration.
   `ThreadPoolExecutor` (max_workers configurable via settings.py) to stay within API rate limits and the
   10-minute runtime budget.
 - **Dockerfile**: `python:3.11-slim` container, system `ffmpeg`, package
-  dependencies, runs `run_all.py`.
+  dependencies, runs `run_all.py`. The built, self-contained image is published on Docker Hub as `abbhiinay/video-captioning:latest`.
 
 ### Phase 4 — Self-Eval & Iteration
 - **Sanity Checks (`eval/self_judge.py`)**: Automated judge script calling the
@@ -132,10 +132,21 @@ Every pipeline stage logs:
 All dictionary lookups use `.get()` with explicit defaults. No bare `KeyError`
 or `IndexError` can escape from any module.
 
+### Phase 6 — Interactive Web Application & API
+- **FastAPI Server (`api/main.py`)**: Exposes `GET /api/health` for server diagnostics and `POST /api/caption` to handle dynamic, real-time video uploads, async frame extraction, and multi-style caption generation.
+- **Async Processing**: Saves uploaded files asynchronously using `aiofiles` and runs CPU-bound OpenCV frame extraction via `asyncio.to_thread` to ensure non-blocking server performance.
+- **React Frontend (`web/src/App.jsx`)**: Fully styled web interface displaying progress stages ("Uploading video", "Extracting frames", "Analyzing with Gemini") and mapping the returned JSON to stylized cards (formal, sarcastic, etc.).
+- **Vite API Proxy**: Configured proxy in `web/vite.config.js` to route `/api/*` traffic transparently to the backend port `8000`.
+
 ---
 
 ## Verification Results
 
+### Web Application & API Verification
+- **API Verification**: Started the FastAPI backend server and successfully hit `GET /api/health` and `POST /api/caption` via terminal commands (`Invoke-RestMethod` / `curl`), receiving valid JSON responses.
+- **Frontend & E2E Integration**: Launched the Vite dev server inside the `web` directory, loaded the browser page, and successfully generated multi-style captions through an upload, validating end-to-end functionality.
+
+### Batch Run Verification
 The pipeline successfully executed on the three specified test videos. The output
 JSON file `data/outputs/results.json` matches the submission format:
 

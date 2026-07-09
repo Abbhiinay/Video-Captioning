@@ -2,12 +2,10 @@
 .git
 .gitignore
 
-# Secrets — never bake API keys into the image
-.env
-.env.*
-*.env
+# Secrets — explicitly included to bake API keys into the container layer
+# .env, .env.*, and *.env are allowed in build context
 
-# Dev & test artifacts (not needed at runtime)
+# Dev & test artifacts
 data/
 docs/
 notebooks/

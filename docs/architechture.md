@@ -20,46 +20,34 @@ payload. This approach means:
 
 ---
 
-## Pipeline
+## Pipeline Architecture
+
+The system supports two execution paths sharing the same core visual perception and styling engine:
+
+1. **Batch Pipeline (CLI / Production)**: Processes multiple remote video tasks specified in `tasks.json` concurrently using a thread pool, downloading clips and producing a single structured `results.json` file.
+2. **Interactive Web Pipeline (Web UI / API)**: Supports single-pass real-time upload of local videos from a browser, handling processing asynchronously and returning styling results dynamically back to the interface.
 
 ```
-Video Clip
-│
-▼
-Preprocessing (extract_frames.py)
-│  → Hybrid frame sampling:
-│    • 3 uniform anchor frames for temporal coverage
-│    • (n-3) scene-change frames via FPS-driven histogram diff
-│    • Candidate interval: ~0.5 s of video per sample (scales with FPS)
-│
-▼
-Unified Perception & Styling (analyze_video.py)
-│  → Single prompt → structured JSON response
-│  → Auto-retry with repair prompt if JSON is malformed
-│  → Key validation: missing fields filled with safe defaults
-│
-▼
-Output (pipeline.py → results.json)
-→ { task_id, captions: { formal, sarcastic, humorous_tech, humorous_non_tech } }
+[ Batch Flow ]
+Video Tasks (tasks.json) ──> Concurrency coordinator (run_all.py) ──> Batch Pipeline (pipeline.py)
+                                                                             │
+[ Web Flow ]                                                                 ▼
+Video File (Web App) ──> API Server (api/main.py) ──> extract_frames.py ──> gemini_client.py ──> output
 ```
 
 ---
 
 ## Components
 
-| Component | Responsibility | Input | Output |
-|---|---|---|---|
-| `extract_frames.py` | Sample frames (hybrid uniform + scene-change) | video path | list of JPEG paths |
-| `analyze_video.py` | Parse JSON, retry on failure, validate keys | frames + prompt | validated dict |
-| `gemini_client.py` | REST wrapper with exponential-backoff retries | prompt + frames | raw text |
-| `prompts.py` | Build unified prompt + JSON repair prompt | styles | prompt string |
-| `pipeline.py` | Orchestrate stages, clean up temp files | task dict | result dict |
-| `io.py` | Load tasks, download video, save results | paths / URLs | files / dicts |
-| `run_all.py` | Batch entry point with ThreadPoolExecutor | tasks.json | results.json |
-
----
-
-## Models
+| Component | Layer / Area | Responsibility | Input | Output |
+|---|---|---|---|---|
+| `extract_frames.py` / `frame_extractor.py` | Preprocessing | Sample frames (hybrid uniform + scene-change) | Video path / file | List of local JPEG paths |
+| `analyze_video.py` / `gemini_service.py` | Perception | Sends frames to Gemini, parses JSON, retries, validates | Base64 frames + prompts | Validated structure dict |
+| `prompts.py` | Prompt Engine | Build unified styling prompt + JSON repair instructions | Target styles list | Formatted prompt string |
+| `pipeline.py` | Batch Orchestrator | Coordinates download -> extract -> analyze sequence | Task dict | Result output dict |
+| `run_all.py` | Batch Runner | CLI entry point running thread-pooled tasks | tasks.json | results.json |
+| `api/main.py` | Web API Backend | FastAPI endpoints (`/api/health`, `/api/caption`) | Uploaded video file | JSON captions payload |
+| `web/src/App.jsx` | Web Frontend | React + Vite client UI, upload handlers, styling view | User action (upload) | Interactive dashboard |
 
 - **Gemini 2.5 Flash** — Google multimodal model.
   Receives inline base64 JPEG frames via REST API.

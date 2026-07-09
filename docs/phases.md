@@ -45,12 +45,18 @@ Status legend: ⬜ not started · 🟨 in progress · ✅ done
 - ✅ Unverified quantitative claims removed from documentation
 - ✅ All docs updated to reflect hardened pipeline
 
-## Phase 6 — Polish & Submission
-- ✅ README finalised
-- ✅ `docs/submission.md` updated
+## Phase 6 — Interactive Web Application & API
+- ✅ FastAPI backend server implemented (`api/main.py`)
+- ✅ React + Vite frontend user interface built (`web/src/App.jsx`)
+- ✅ Proxy configuration wired to connect frontend to uvicorn port 8000
+- ✅ Tested and verified health endpoints and video upload flows
+
+## Phase 7 — Polish & Submission
+- ✅ README finalised and updated with Web setup instructions
+- ✅ `docs/submission.md` and `docs/architechture.md` updated with Web architectures
 - ✅ Dead code removed
-- ✅ Final clean run confirms reproducibility
-- ✅ Submitted before deadline
+- ✅ Final clean run confirms end-to-end reproducibility
+- ✅ Web page integration successfully completed and submitted
 
 ## Current Blockers
-- None. Final submission verified and completed.
+- None. Final integration verified and completed.
