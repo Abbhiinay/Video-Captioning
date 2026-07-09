@@ -7,7 +7,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+COPY api/requirements.txt ./api_requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt -r api_requirements.txt
 
 # ─── Stage 2: Runtime image ───────────────────────    
 FROM python:3.11-slim
@@ -25,6 +26,7 @@ COPY config/           ./config/
 COPY description/      ./description/
 COPY src/              ./src/
 COPY scripts/          ./scripts/
+COPY api/              ./api/
 COPY requirements.txt  ./requirements.txt
 COPY .env*             ./
 
