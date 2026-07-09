@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { motion } from "framer-motion";
 import CaptionCard from "./CaptionCard";
 import { Download, RotateCcw } from "lucide-react";
@@ -6,16 +7,31 @@ const STYLE_ORDER = ["formal", "sarcastic", "humorous_tech", "humorous_non_tech"
 
 export default function ResultsDashboard({ captions, fileName, onReset }) {
   const handleDownloadJSON = () => {
-    const blob = new Blob([JSON.stringify({ captions }, null, 2)], {
+    const data = {
+      fileName: fileName || "unknown",
+      generatedAt: new Date().toISOString(),
+      captions,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "captions.json";
+    a.download = `captions_${(fileName || "video").replace(/\.[^.]+$/, "")}.json`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    // Defer revocation so the browser has time to initiate the download
+    setTimeout(() => URL.revokeObjectURL(url), 150);
   };
+
+  const handleBtnMouseMove = useCallback((e) => {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    btn.style.setProperty("--mouse-x", `${((e.clientX - rect.left) / rect.width) * 100}%`);
+    btn.style.setProperty("--mouse-y", `${((e.clientY - rect.top) / rect.height) * 100}%`);
+  }, []);
 
   return (
     <motion.div
@@ -31,12 +47,13 @@ export default function ResultsDashboard({ captions, fileName, onReset }) {
         transition={{ duration: 0.5, delay: 0.1 }}
         className="text-center mb-10"
       >
-        <h2 className="text-3xl font-bold tracking-tight gradient-text mb-2">
+        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight gradient-text mb-3">
           Your Captions Are Ready
         </h2>
         {fileName && (
           <p className="text-on-surface-variant text-sm">
-            Generated from <span className="text-secondary font-medium">{fileName}</span>
+            Generated from{" "}
+            <span className="text-secondary font-medium">{fileName}</span>
           </p>
         )}
       </motion.div>
@@ -60,25 +77,31 @@ export default function ResultsDashboard({ captions, fileName, onReset }) {
         transition={{ duration: 0.5, delay: 0.6 }}
         className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10"
       >
-        <button
+        <motion.button
           onClick={handleDownloadJSON}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium
-                     gradient-primary text-white glow-violet
+          onMouseMove={handleBtnMouseMove}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="magnetic-btn flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold
+                     gradient-primary text-white
                      hover:brightness-110 transition-all duration-200 cursor-pointer"
         >
           <Download className="w-4 h-4" />
           Download as JSON
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={onReset}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium
+          onMouseMove={handleBtnMouseMove}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="magnetic-btn flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold
                      bg-white/5 border border-white/10 text-on-surface-variant
-                     hover:bg-white/10 hover:border-white/20
+                     hover:bg-white/8 hover:border-white/20
                      transition-all duration-200 cursor-pointer"
         >
           <RotateCcw className="w-4 h-4" />
           Process Another Video
-        </button>
+        </motion.button>
       </motion.div>
     </motion.div>
   );

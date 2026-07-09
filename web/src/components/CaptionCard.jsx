@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { Copy, Check, Briefcase, SmilePlus, Terminal, Heart } from "lucide-react";
 
@@ -7,46 +7,53 @@ const STYLE_CONFIG = {
     label: "Formal",
     icon: Briefcase,
     accentColor: "rgba(99, 102, 241, 0.8)",
-    borderColor: "rgba(99, 102, 241, 0.3)",
+    borderColor: "rgba(99, 102, 241, 0.2)",
     bgGlow: "rgba(99, 102, 241, 0.06)",
+    glowStrong: "rgba(99, 102, 241, 0.2)",
     badgeBg: "bg-indigo-500/15",
     badgeText: "text-indigo-300",
-    badgeBorder: "border-indigo-500/30",
+    badgeBorder: "border-indigo-500/25",
   },
   sarcastic: {
     label: "Sarcastic",
     icon: SmilePlus,
     accentColor: "rgba(6, 182, 212, 0.8)",
-    borderColor: "rgba(6, 182, 212, 0.3)",
+    borderColor: "rgba(6, 182, 212, 0.2)",
     bgGlow: "rgba(6, 182, 212, 0.06)",
+    glowStrong: "rgba(6, 182, 212, 0.2)",
     badgeBg: "bg-cyan-500/15",
     badgeText: "text-cyan-300",
-    badgeBorder: "border-cyan-500/30",
+    badgeBorder: "border-cyan-500/25",
   },
   humorous_tech: {
     label: "Humorous Tech",
     icon: Terminal,
     accentColor: "rgba(124, 58, 237, 0.8)",
-    borderColor: "rgba(124, 58, 237, 0.3)",
+    borderColor: "rgba(124, 58, 237, 0.2)",
     bgGlow: "rgba(124, 58, 237, 0.06)",
+    glowStrong: "rgba(124, 58, 237, 0.2)",
     badgeBg: "bg-violet-500/15",
     badgeText: "text-violet-300",
-    badgeBorder: "border-violet-500/30",
+    badgeBorder: "border-violet-500/25",
   },
   humorous_non_tech: {
     label: "Humorous Non-Tech",
     icon: Heart,
-    accentColor: "rgba(245, 158, 11, 0.8)",
-    borderColor: "rgba(245, 158, 11, 0.3)",
-    bgGlow: "rgba(245, 158, 11, 0.06)",
+    accentColor: "rgba(251, 191, 36, 0.8)",
+    borderColor: "rgba(251, 191, 36, 0.2)",
+    bgGlow: "rgba(251, 191, 36, 0.06)",
+    glowStrong: "rgba(251, 191, 36, 0.2)",
     badgeBg: "bg-amber-500/15",
     badgeText: "text-amber-300",
-    badgeBorder: "border-amber-500/30",
+    badgeBorder: "border-amber-500/25",
   },
 };
 
 export default function CaptionCard({ style, caption, index = 0 }) {
   const [copied, setCopied] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef(null);
   const config = STYLE_CONFIG[style] || STYLE_CONFIG.formal;
   const Icon = config.icon;
 
@@ -61,43 +68,64 @@ export default function CaptionCard({ style, caption, index = 0 }) {
     }
   };
 
+  const handleMouseMove = useCallback((e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setTilt({ x: y * -8, y: x * 8 });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setTilt({ x: 0, y: 0 });
+    setIsHovered(false);
+  }, []);
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
+      ref={cardRef}
+      initial={{ opacity: 0, y: 28, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{
         duration: 0.5,
         delay: index * 0.12,
         ease: [0.22, 1, 0.36, 1],
       }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="glass-card glass-card-hover rounded-2xl p-6 flex flex-col gap-4
-                 relative overflow-hidden group transition-all duration-300"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      className="glass-card rounded-2xl p-6 flex flex-col gap-4
+                 relative overflow-hidden group cursor-default"
       style={{
-        borderColor: config.borderColor,
-        boxShadow: `0 0 0 0 transparent`,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 0 30px ${config.bgGlow}`;
-        e.currentTarget.style.borderColor = config.accentColor;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "0 0 0 0 transparent";
-        e.currentTarget.style.borderColor = config.borderColor;
+        transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transition: "transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease",
+        borderColor: isHovered ? config.accentColor : config.borderColor,
+        boxShadow: isHovered
+          ? `0 0 40px ${config.glowStrong}, 0 8px 32px rgba(0, 0, 0, 0.3)`
+          : "0 0 0 0 transparent",
       }}
     >
       {/* Top accent line */}
-      <div
-        className="absolute top-0 left-6 right-6 h-[2px] rounded-full opacity-60"
+      <motion.div
+        className="absolute top-0 left-6 right-6 h-[2px] rounded-full"
         style={{ background: config.accentColor }}
+        animate={
+          isHovered
+            ? { opacity: [0.5, 1, 0.5] }
+            : { opacity: 0.4 }
+        }
+        transition={isHovered ? { duration: 2, repeat: Infinity, ease: "easeInOut" } : { duration: 0.3 }}
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-2">
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: config.bgGlow }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300"
+            style={{
+              background: config.bgGlow,
+              boxShadow: isHovered ? `0 0 16px ${config.bgGlow}` : "none",
+            }}
           >
             <Icon className="w-4 h-4" style={{ color: config.accentColor }} />
           </div>
@@ -111,14 +139,20 @@ export default function CaptionCard({ style, caption, index = 0 }) {
         <button
           onClick={handleCopy}
           disabled={!caption}
-          className="p-2 rounded-lg bg-white/5 border border-white/10
-                     hover:bg-white/10 hover:border-white/20
+          className="p-2 rounded-lg bg-white/5 border border-white/8
+                     hover:bg-white/10 hover:border-white/15
                      transition-all duration-200 cursor-pointer
-                     disabled:opacity-30 disabled:cursor-not-allowed"
+                     disabled:opacity-30 disabled:cursor-not-allowed relative z-10"
           aria-label={`Copy ${config.label} caption`}
         >
           {copied ? (
-            <Check className="w-4 h-4 text-green-400" />
+            <motion.div
+              initial={{ scale: 0, rotate: -90 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            >
+              <Check className="w-4 h-4 text-green-400" />
+            </motion.div>
           ) : (
             <Copy className="w-4 h-4 text-on-surface-variant" />
           )}
@@ -126,13 +160,19 @@ export default function CaptionCard({ style, caption, index = 0 }) {
       </div>
 
       {/* Caption Text */}
-      <p className="text-on-surface text-base leading-relaxed min-h-[4rem] flex items-center">
-        {caption || (
-          <span className="text-on-surface-variant/50 italic">
-            No caption generated
-          </span>
-        )}
-      </p>
+      <div className="relative z-10">
+        <div
+          className="absolute left-0 top-0 bottom-0 w-[2px] rounded-full opacity-30"
+          style={{ background: config.accentColor }}
+        />
+        <p className="text-on-surface text-base leading-relaxed min-h-[4rem] flex items-center pl-4">
+          {caption || (
+            <span className="text-on-surface-variant/40 italic">
+              No caption generated
+            </span>
+          )}
+        </p>
+      </div>
 
       {/* Copied feedback */}
       {copied && (
@@ -140,9 +180,9 @@ export default function CaptionCard({ style, caption, index = 0 }) {
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className="absolute bottom-2 right-4 text-xs text-green-400 font-medium"
+          className="absolute bottom-3 right-4 text-xs text-green-400 font-medium z-10"
         >
-          Copied!
+          Copied to clipboard!
         </motion.div>
       )}
     </motion.div>
