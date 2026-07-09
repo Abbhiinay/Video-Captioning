@@ -10,6 +10,9 @@ const SceneBackground = lazy(() => import("./components/SceneBackground"));
 
 // App states: "idle" | "processing" | "results" | "error"
 
+// In production the Vite proxy is not available, so we hit the backend directly.
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
 const pageTransition = {
   initial: { opacity: 0, y: 30, scale: 0.98, filter: "blur(8px)" },
   animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
@@ -41,7 +44,7 @@ export default function App() {
     ];
 
     try {
-      const response = await fetch("/api/caption", {
+      const response = await fetch(`${API_BASE}/api/caption`, {
         method: "POST",
         body: formData,
       });
