@@ -1,0 +1,29 @@
+[
+  {
+    "task_id": "v1",
+    "captions": {
+      "formal": "Vehicles move along a multi-lane urban road lined with buildings and autumn trees under a clear sky.",
+      "sarcastic": "Look at all that exciting, fast-paced urban traffic, truly a thrilling spectacle.",
+      "humorous_tech": "This urban traffic jam is clearly experiencing a classic multi-threaded resource deadlock.",
+      "humorous_non_tech": "My morning commute always feels like a slow-motion race against time."
+    }
+  },
+  {
+    "task_id": "v2",
+    "captions": {
+      "formal": "A small orange kitten walks forward on the dirt ground among green foliage and tree trunks.",
+      "sarcastic": "Clearly, this tiny kitten is on a very important mission through the dense undergrowth.",
+      "humorous_tech": "A new process, the kitten, navigates the complex directory structure of the undergrowth.",
+      "humorous_non_tech": "This little kitten is definitely on its way to find the hidden snack stash."
+    }
+  },
+  {
+    "task_id": "v3",
+    "captions": {
+      "formal": "A woman is actively typing on a keyboard while observing content on a computer monitor in an office.",
+      "sarcastic": "Riveting screen time, I'm sure that computer monitor is just overflowing with excitement.",
+      "humorous_tech": "Just another day debugging the universe, one keystroke at a time on this keyboard.",
+      "humorous_non_tech": "Pretending to be busy at the desk, hoping no one assigns more tasks."
+    }
+  }
+]

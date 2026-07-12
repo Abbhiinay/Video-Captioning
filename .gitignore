@@ -10,10 +10,6 @@
 *.swp
 *.swo
 
-# Project Specific Data & Video Media
-data/clips/
-data/outputs/
-
 # Python Runtime & Caching
 __pycache__/
 *.py[cod]
