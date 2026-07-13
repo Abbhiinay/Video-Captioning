@@ -3,27 +3,27 @@
     "task_id": "v1",
     "captions": {
       "formal": "A time-lapse captures vehicles traveling along a multi-lane urban street lined with autumn trees and high-rise buildings.",
-      "sarcastic": "Oh wonderful, cars inching along a city street while autumn trees silently judge everyone.",
-      "humorous_tech": "This street traffic is a classic deadlock where every car waits for others to commit first.",
-      "humorous_non_tech": "Rush-hour traffic is like a buffet where everyone pretends they don't see the empty plates."
+      "sarcastic": "Oh fantastic, watching cars blur past in a time-lapse is exactly the thrilling content my commute needed today.",
+      "humorous_tech": "These cars are stuck in a massive deadlock on the multi-lane highway while the traffic lights keep signaling green.",
+      "humorous_non_tech": "Watching this rush hour traffic feels like waiting in the school pickup line while autumn leaves mock your patience."
     }
   },
   {
     "task_id": "v2",
     "captions": {
-      "formal": "A ginger kitten walks forward through green foliage toward the camera in an outdoor garden.",
-      "sarcastic": "Oh sure, just casually strolling through the bushes like you own the place, tiny orange menace.",
-      "humorous_tech": "This ginger kitten pushing through branches is like a new commit deploying straight to production.",
-      "humorous_non_tech": "The kitten struts through the garden like it's late for a playdate with the neighbor's cat."
+      "formal": "A ginger kitten walks forward through green foliage on a dirt path toward the camera.",
+      "sarcastic": "Oh sure, just casually strolling through the jungle like you own the place, tiny orange explorer.",
+      "humorous_tech": "This ginger kitten walking through branches is like a junior dev pushing to production without code review.",
+      "humorous_non_tech": "This little orange kitten marching through the bushes like it's late for a very important playdate."
     }
   },
   {
     "task_id": "v3",
     "captions": {
       "formal": "A woman types on a keyboard while working at a computer monitor in a modern office.",
-      "sarcastic": "She stares at that monitor like it owes her an explanation for the deadline.",
-      "humorous_tech": "Her keyboard is clearly running a git merge with her patience as the main branch.",
-      "humorous_non_tech": "She's typing so fast the office plants are starting to feel personally attacked."
+      "sarcastic": "Oh look, another person pretending that typing furiously equals actual productivity at the office.",
+      "humorous_tech": "Her keyboard is getting more git commits than my entire repo this sprint.",
+      "humorous_non_tech": "She's typing so fast her coffee probably went cold three meetings ago."
     }
   }
 ]

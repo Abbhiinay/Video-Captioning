@@ -1,9 +1,9 @@
 import os
 import sys
 import json
-import requests
 import logging
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Ensure project root is in path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,13 +15,15 @@ load_dotenv()
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-def rate_caption_with_gemini(style: str, caption: str) -> dict:
-    api_key = os.getenv("GEMINI_API_KEY")
+def rate_caption_with_fireworks(style: str, caption: str) -> dict:
+    api_key = os.getenv("FIREWORKS_API_KEY")
     if not api_key:
-        return {"error": "GEMINI_API_KEY missing"}
+        return {"error": "FIREWORKS_API_KEY missing"}
         
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    base_url = os.getenv("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1")
+    model = os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/minimax-m3")
+    
+    client = OpenAI(api_key=api_key, base_url=base_url)
     
     prompt = (
         "You are an AI evaluator. Evaluate whether the caption fits the requested style and accurately describes a scene.\n"
@@ -35,18 +37,22 @@ def rate_caption_with_gemini(style: str, caption: str) -> dict:
         f"Style Requested: {style}\nCaption: {caption}"
     )
     
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json"}
-    }
-    headers = {"Content-Type": "application/json"}
-    
-    response = requests.post(url, json=payload, headers=headers, timeout=30)
-    response.raise_for_status()
-    
-    data = response.json()
-    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
     try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0
+        )
+        text = response.choices[0].message.content.strip()
+        # Clean potential markdown fences
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines[-1].startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+            
         parsed = json.loads(text)
         return {
             "caption_accuracy": parsed.get("caption_accuracy", 0.0),
@@ -55,7 +61,7 @@ def rate_caption_with_gemini(style: str, caption: str) -> dict:
             "reason": parsed.get("reason", "unknown")
         }
     except Exception as e:
-        return {"error": f"Failed to parse eval response: {e}"}
+        return {"error": f"Failed to call evaluation model: {e}"}
 
 def main():
     results_path = os.getenv("OUTPUT_RESULTS_PATH", "data/outputs/results.json")
@@ -66,7 +72,7 @@ def main():
     with open(results_path, "r", encoding="utf-8") as f:
         results = json.load(f)
         
-    print("=== Caption Self-Evaluation ===")
+    print("=== Caption Self-Evaluation (Fireworks) ===")
     for task in results:
         task_id = task.get("task_id")
         captions = task.get("captions", {})
@@ -78,7 +84,7 @@ def main():
                 continue
                 
             try:
-                rating = rate_caption_with_gemini(style, caption)
+                rating = rate_caption_with_fireworks(style, caption)
                 if "error" in rating:
                     print(f"  [{style}]: \"{caption}\"\n    -> Evaluation failed: {rating['error']}")
                 else:

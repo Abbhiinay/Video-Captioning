@@ -187,11 +187,11 @@ def _verify_caption(caption: str, style: str) -> bool:
     words = caption.split()
     word_count = len(words)
     
-    if style == "formal" and word_count > 18:
-        logger.warning(f"Caption failed word limit ({word_count} > 18): {caption}")
-        return False
-    elif style != "formal" and word_count > 16:
-        logger.warning(f"Caption failed word limit ({word_count} > 16): {caption}")
+    # Word limits (enforce 20-word limit globally across all styles as safety net)
+    words = caption.split()
+    word_count = len(words)
+    if word_count > 20:
+        logger.warning(f"Caption failed word limit ({word_count} > 20): {caption}")
         return False
         
     return True
@@ -267,7 +267,21 @@ def analyze_video(
         cleaned = _strip_markdown_fences(raw_text)
         parsed = _safe_parse_json(cleaned)
         if parsed:
-            logger.info("Fireworks response parsed successfully on first attempt.")
+            # Check if all captions are present and valid
+            all_valid = True
+            for style in styles:
+                cap = parsed.get("captions", {}).get(style)
+                if not cap or not _verify_caption(cap, style):
+                    all_valid = False
+                    break
+            
+            if all_valid:
+                logger.info("Fireworks response parsed and validated successfully on first attempt.")
+            else:
+                logger.warning(
+                    "First Fireworks response had missing or invalid captions — triggering repair retry."
+                )
+                parsed = None
         else:
             logger.warning(
                 "First Fireworks response was not valid JSON — attempting JSON repair retry."
