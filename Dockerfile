@@ -35,7 +35,9 @@ RUN cp scripts/run_all.py run_all.py
 
 RUN mkdir -p /input /output
 
-ENV GEMINI_MODEL=gemini-2.5-flash
+ENV FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
+ENV FIREWORKS_VISION_MODEL=accounts/fireworks/models/minimax-m3
+ENV FIREWORKS_FALLBACK_VISION_MODEL=accounts/fireworks/models/qwen3p7-plus
 ENV FRAME_COUNT=5
 ENV ENABLE_SCENE_DETECTION=true
 ENV INPUT_TASKS_PATH=/input/tasks.json

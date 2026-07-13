@@ -4,10 +4,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ── API Keys ──────────────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+FIREWORKS_API_KEY = os.getenv("FIREWORKS_API_KEY", "")
 
 # ── Models ────────────────────────────────────────────────────────────────────
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+FIREWORKS_BASE_URL = os.getenv("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1")
+FIREWORKS_VISION_MODEL = os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/minimax-m3")
+FIREWORKS_FALLBACK_VISION_MODEL = os.getenv(
+    "FIREWORKS_FALLBACK_VISION_MODEL", "accounts/fireworks/models/qwen3p7-plus"
+)
 
 # ── Video Processing Settings ──────────────────────────────────────────────────
 FRAME_COUNT = int(os.getenv("FRAME_COUNT", "5"))

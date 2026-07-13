@@ -1,12 +1,12 @@
 """
 analyze_video.py
 
-Calls Gemini Flash with sampled video frames to produce a structured JSON response
+Calls Fireworks VLM with sampled video frames to produce a structured JSON response
 containing both video understanding metadata and all requested caption styles
 in a single API call.
 
 Responsibilities:
-  - Build and send the unified prompt to gemini_client.
+  - Build and send the unified prompt to Fireworks.
   - Strip any accidental markdown wrapping from the raw response.
   - Parse the JSON response with an automatic repair-retry on failure (Task 1).
   - Validate and back-fill every required key with safe defaults (Task 2).
@@ -15,12 +15,19 @@ Responsibilities:
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
+import os
 import re
 from typing import Any
+from openai import OpenAI
 
-from description.utils.gemini_client import analyze_video_frames
+from config.settings import (
+    FIREWORKS_API_KEY, FIREWORKS_BASE_URL,
+    FIREWORKS_VISION_MODEL, FIREWORKS_FALLBACK_VISION_MODEL,
+    TEMPERATURE, TOP_P, MAX_OUTPUT_TOKENS
+)
 from description.style_engine.prompts import get_unified_prompt, get_repair_prompt
 
 logger = logging.getLogger(__name__)
@@ -57,8 +64,14 @@ _VIDEO_UNDERSTANDING_DEFAULTS: dict[str, Any] = {
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+def _encode_image(path: str) -> str:
+    """Read a JPEG frame and encode it as a base64 string."""
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
+
 def _strip_markdown_fences(text: str) -> str:
-    """Remove ```json … ``` or ``` … ``` fences that Gemini sometimes emits."""
+    """Remove ```json … ``` or ``` … ``` fences that the model sometimes emits."""
     text = text.strip()
     # Remove leading fence (with optional language tag)
     text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
@@ -73,7 +86,7 @@ def _safe_parse_json(raw: str) -> dict | None:
         parsed = json.loads(raw)
         if isinstance(parsed, dict):
             return parsed
-        logger.warning("Gemini returned valid JSON but it was not a dict object.")
+        logger.warning("VLM returned valid JSON but it was not a dict object.")
         return None
     except json.JSONDecodeError as exc:
         logger.warning(f"JSON decode error: {exc}")
@@ -87,9 +100,7 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
     - captions: guarantees all four canonical styles (and any extra requested ones)
       are present. Missing ones become empty strings.
     - video_understanding: fills every missing field with a sensible default.
-    - camera_motion: must be one of the allowed values; falls back to "unknown".
-    - apparent_emotion: patched in if the model returned the old "emotion" key.
-    - No exceptions are raised here (Task 14 / Task 2).
+      and normalizes apparent_emotion and camera_motion.
     """
     # ── captions block ──────────────────────────────────────────────────────
     if not isinstance(parsed.get("captions"), dict):
@@ -133,8 +144,6 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
             vu["camera_motion"] = "unknown"
 
     # ── Task 15: Output Verification ─────────────────────────────────────────
-    # Verify captions are single sentence, non-empty, within word limits,
-    # plain text (no markdown, emojis, numbering, quotes).
     for style in all_expected_styles:
         caption = parsed["captions"].get(style, "")
         if not _verify_caption(caption, style):
@@ -164,15 +173,14 @@ def _verify_caption(caption: str, style: str) -> bool:
         logger.warning(f"Caption failed numbering/prefix check: {caption}")
         return False
         
-    # Single sentence (exactly one ending punctuation mark)
-    # Allowed ending punctuation: ., !, ?
+    # Single sentence (exactly one ending punctuation mark, no internal sentence boundaries)
     ends_with_punct = caption.endswith(".") or caption.endswith("!") or caption.endswith("?")
-    
-    # Count internal sentence terminators (we allow commas, semicolons, etc, but only one sentence terminator)
-    terminator_count = caption.count(".") + caption.count("!") + caption.count("?")
-    
-    if not ends_with_punct or terminator_count != 1:
-        logger.warning(f"Caption failed single sentence check (terminators={terminator_count}): {caption}")
+    if not ends_with_punct:
+        logger.warning(f"Caption failed ending punctuation check: {caption}")
+        return False
+        
+    if re.search(r"[\.\!\?]\s+[A-Z]", caption):
+        logger.warning(f"Caption failed single sentence check (multiple sentences detected): {caption}")
         return False
         
     # Word limits
@@ -189,6 +197,37 @@ def _verify_caption(caption: str, style: str) -> bool:
     return True
 
 
+def _call_fireworks_vlm(model_name: str, frame_paths: list[str], prompt: str) -> str:
+    """Send base64 images and a text prompt to Fireworks VLM via OpenAI SDK."""
+    if not FIREWORKS_API_KEY:
+        raise ValueError("FIREWORKS_API_KEY environment variable is not set.")
+
+    client = OpenAI(
+        api_key=FIREWORKS_API_KEY,
+        base_url=FIREWORKS_BASE_URL,
+    )
+
+    content = [{"type": "text", "text": prompt}]
+    for path in frame_paths:
+        if os.path.exists(path):
+            b64_data = _encode_image(path)
+            content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{b64_data}"}
+            })
+
+    messages = [{"role": "user", "content": content}]
+
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=messages,
+        temperature=TEMPERATURE,
+        top_p=TOP_P,
+        max_tokens=MAX_OUTPUT_TOKENS,
+    )
+    return response.choices[0].message.content or ""
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 def analyze_video(
@@ -197,18 +236,8 @@ def analyze_video(
     styles: list[str],
 ) -> dict:
     """
-    Call Gemini Flash to analyze frames and generate all requested captions
-    in a single API call.
-
-    Robust JSON handling (Task 1):
-      1. Send the unified prompt; attempt to parse the JSON response.
-      2. On parse failure, send one repair prompt and re-parse.
-      3. On second failure, return a safe empty-caption result — never crash.
-
-    Key validation (Task 2):
-      After parsing, _validate_and_patch() ensures every required key exists.
-
-    Returns a dict with keys: "captions" (dict), "video_understanding" (dict).
+    Call Fireworks VLM to analyze frames and generate all requested captions
+    in a single API call with automatic fallback and JSON repair retry.
     """
     if not frame_paths:
         logger.error("Cannot analyze video: no frame paths provided.")
@@ -216,50 +245,55 @@ def analyze_video(
 
     unified_prompt = get_unified_prompt(styles)
 
-    # ── Attempt 1: primary call ─────────────────────────────────────────────
+    # ── Attempt 1: primary call with VLM fallback ───────────────────────────
     logger.info(
-        f"Calling Gemini with {len(frame_paths)} frames "
+        f"Calling Fireworks with {len(frame_paths)} frames "
         f"for perception + caption generation (styles={styles})."
     )
     raw_text: str | None = None
-    api_call_failed = False  # tracks whether the API itself failed (429, network) vs bad JSON
+    api_call_failed = False
     try:
-        raw_text = analyze_video_frames(frame_paths, transcript, unified_prompt)
+        raw_text = _call_fireworks_vlm(FIREWORKS_VISION_MODEL, frame_paths, unified_prompt)
     except Exception as exc:
-        logger.error(f"Gemini primary API call failed: {exc}")
-        api_call_failed = True
+        logger.error(f"Fireworks primary model call failed: {exc}. Trying fallback model...")
+        try:
+            raw_text = _call_fireworks_vlm(FIREWORKS_FALLBACK_VISION_MODEL, frame_paths, unified_prompt)
+        except Exception as exc2:
+            logger.error(f"Fireworks fallback model call failed: {exc2}")
+            api_call_failed = True
 
     parsed = None
     if raw_text:
         cleaned = _strip_markdown_fences(raw_text)
         parsed = _safe_parse_json(cleaned)
         if parsed:
-            logger.info("Gemini response parsed successfully on first attempt.")
+            logger.info("Fireworks response parsed successfully on first attempt.")
         else:
             logger.warning(
-                "First Gemini response was not valid JSON — attempting JSON repair retry."
+                "First Fireworks response was not valid JSON — attempting JSON repair retry."
             )
 
-    # ── Attempt 2: repair-retry (Task 1) ───────────────────────────────────
-    # ONLY attempt repair if:
-    #   - We got a response (raw_text is not None) but it was invalid JSON
-    # Do NOT attempt repair if the primary API call itself failed (429, network error).
-    # Sending another request immediately after a 429 just makes rate limiting worse.
+    # ── Attempt 2: repair-retry ───────────────────────────────────────────
     if parsed is None and raw_text is not None and not api_call_failed:
-        logger.info("Sending JSON repair prompt to Gemini (retry attempt 1).")
+        logger.info("Sending JSON repair prompt to Fireworks (retry attempt 1).")
         repair_prompt = get_repair_prompt(styles, raw_text)
         try:
-            raw_text = analyze_video_frames(frame_paths, transcript, repair_prompt)
-            logger.info("JSON repair retry: Gemini call succeeded.")
+            raw_text = _call_fireworks_vlm(FIREWORKS_VISION_MODEL, frame_paths, repair_prompt)
+            logger.info("JSON repair retry: Fireworks primary model call succeeded.")
         except Exception as exc:
-            logger.error(f"Gemini repair retry call failed: {exc}")
-            raw_text = None
+            logger.error(f"Fireworks repair primary model call failed: {exc}. Trying fallback...")
+            try:
+                raw_text = _call_fireworks_vlm(FIREWORKS_FALLBACK_VISION_MODEL, frame_paths, repair_prompt)
+                logger.info("JSON repair retry: Fireworks fallback model call succeeded.")
+            except Exception as exc2:
+                logger.error(f"Fireworks repair fallback model call failed: {exc2}")
+                raw_text = None
 
         if raw_text:
             cleaned = _strip_markdown_fences(raw_text)
             parsed = _safe_parse_json(cleaned)
             if parsed:
-                logger.info("Gemini response parsed successfully after repair retry.")
+                logger.info("Fireworks response parsed successfully after repair retry.")
             else:
                 logger.error(
                     "JSON repair retry also produced invalid JSON. "
@@ -272,20 +306,19 @@ def analyze_video(
             )
     elif parsed is None and api_call_failed:
         logger.error(
-            "Primary API call failed (rate limit or network error). "
-            "Skipping repair retry to avoid worsening rate limit. "
+            "API calls failed. Skipping repair retry. "
             "Returning graceful empty captions."
         )
 
     # ── Graceful fallback ───────────────────────────────────────────────────
     if parsed is None:
         logger.warning(
-            f"Caption generation failed for this task after 2 attempts — "
+            f"Caption generation failed for this task after attempts — "
             "returning empty captions to keep the batch alive."
         )
         return _empty_result(styles)
 
-    # ── Validate & patch all required keys (Task 2) ─────────────────────────
+    # ── Validate & patch all required keys ──────────────────────────────────
     result = _validate_and_patch(parsed, styles)
     logger.info(
         f"Caption generation complete. "

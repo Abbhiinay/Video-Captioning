@@ -91,7 +91,7 @@ def process_task(task: dict) -> dict:
         # ── Stage 3: Perception + caption generation ───────────────────────
         try:
             logger.info(
-                f"[{task_id}] Sending {len(frame_paths)} frame(s) to Gemini…"
+                f"[{task_id}] Sending {len(frame_paths)} frame(s) to Fireworks…"
             )
             # transcript=None — audio support can be wired here if needed
             analysis: dict = analyze_video(frame_paths, transcript=None, styles=styles)

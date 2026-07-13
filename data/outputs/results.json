@@ -2,28 +2,28 @@
   {
     "task_id": "v1",
     "captions": {
-      "formal": "Vehicles move along a multi-lane urban road lined with buildings and autumn trees under a clear sky.",
-      "sarcastic": "Look at all that exciting, fast-paced urban traffic, truly a thrilling spectacle.",
-      "humorous_tech": "This urban traffic jam is clearly experiencing a classic multi-threaded resource deadlock.",
-      "humorous_non_tech": "My morning commute always feels like a slow-motion race against time."
+      "formal": "A time-lapse captures vehicles traveling along a multi-lane urban street lined with autumn trees and high-rise buildings.",
+      "sarcastic": "Oh wonderful, cars inching along a city street while autumn trees silently judge everyone.",
+      "humorous_tech": "This street traffic is a classic deadlock where every car waits for others to commit first.",
+      "humorous_non_tech": "Rush-hour traffic is like a buffet where everyone pretends they don't see the empty plates."
     }
   },
   {
     "task_id": "v2",
     "captions": {
-      "formal": "A small orange kitten walks forward on the dirt ground among green foliage and tree trunks.",
-      "sarcastic": "Clearly, this tiny kitten is on a very important mission through the dense undergrowth.",
-      "humorous_tech": "A new process, the kitten, navigates the complex directory structure of the undergrowth.",
-      "humorous_non_tech": "This little kitten is definitely on its way to find the hidden snack stash."
+      "formal": "A ginger kitten walks forward through green foliage toward the camera in an outdoor garden.",
+      "sarcastic": "Oh sure, just casually strolling through the bushes like you own the place, tiny orange menace.",
+      "humorous_tech": "This ginger kitten pushing through branches is like a new commit deploying straight to production.",
+      "humorous_non_tech": "The kitten struts through the garden like it's late for a playdate with the neighbor's cat."
     }
   },
   {
     "task_id": "v3",
     "captions": {
-      "formal": "A woman is actively typing on a keyboard while observing content on a computer monitor in an office.",
-      "sarcastic": "Riveting screen time, I'm sure that computer monitor is just overflowing with excitement.",
-      "humorous_tech": "Just another day debugging the universe, one keystroke at a time on this keyboard.",
-      "humorous_non_tech": "Pretending to be busy at the desk, hoping no one assigns more tasks."
+      "formal": "A woman types on a keyboard while working at a computer monitor in a modern office.",
+      "sarcastic": "She stares at that monitor like it owes her an explanation for the deadline.",
+      "humorous_tech": "Her keyboard is clearly running a git merge with her patience as the main branch.",
+      "humorous_non_tech": "She's typing so fast the office plants are starting to feel personally attacked."
     }
   }
 ]

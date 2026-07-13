@@ -57,8 +57,7 @@ async def health():
     """Readiness check."""
     return {
         "status": "ok",
-        "model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
-
+        "model": os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/minimax-m3"),
         "timestamp": datetime.utcnow().isoformat(),
     }
 
@@ -114,8 +113,8 @@ async def caption_video(video: UploadFile = File(...)):
         frame_paths = await extract_frames(video_path, n=FRAME_COUNT)
         logger.info(f"Extracted {len(frame_paths)} frame(s)")
 
-        # ── Call Gemini for captions ──────────────────────────────────
-        logger.info("Calling Gemini for caption generation...")
+        # ── Call Fireworks for captions ──────────────────────────────────
+        logger.info("Calling Fireworks for caption generation...")
         result = generate_captions(frame_paths, styles=STYLES)
 
         captions = result.get("captions", {})
