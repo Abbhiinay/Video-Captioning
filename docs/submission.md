@@ -8,11 +8,13 @@ each build phase of the video captioning integration.
 ## Implemented Steps by Phase
 
 ### Phase 0 — Setup & Spike
-- Installed required Python packages (`opencv-python`, `requests`, `python-dotenv`, `pyyaml`, `pytest`).
+- Installed required Python packages (`opencv-python`, `requests`, `python-dotenv`, `pyyaml`, `pytest`, `openai`, `pydantic`).
 - Set up local development environment and created a `.env` file for API keys.
 - Configured environment variables:
-  - `GEMINI_API_KEY`: [Configured]
-  - `GEMINI_MODEL`: `gemini-2.5-flash`
+  - `FIREWORKS_API_KEY`: [Configured]
+  - `FIREWORKS_BASE_URL`: `https://api.fireworks.ai/inference/v1`
+  - `FIREWORKS_VISION_MODEL`: `accounts/fireworks/models/minimax-m3`
+  - `FIREWORKS_FALLBACK_VISION_MODEL`: `accounts/fireworks/models/qwen3p7-plus`
   - `FRAME_COUNT`: `5`
   - `ENABLE_SCENE_DETECTION`: `true`
 
@@ -21,13 +23,9 @@ each build phase of the video captioning integration.
   Samples candidate frames at a temporal interval driven by the video's actual FPS
   (~0.5 s per sample). Calculates OpenCV histogram differences to identify
   scene-change frames and combines them with 3 evenly-spaced anchor frames.
-- **Gemini Client (`gemini_client.py`)**: REST wrapper using raw HTTP POST requests
-  with inline base64 image data. Enforces `application/json` output mode.
-  4-attempt exponential backoff retry on transient errors (429, 500–504).
-  All response field access is guarded against unexpected shapes.
-- **Unified Video Analysis (`analyze_video.py`)**: Single unified call to
-  Gemini 2.5 Flash. Receives a structured JSON payload containing
-  video understanding metadata and all 4 caption styles simultaneously.
+- **Fireworks VLM Client (`analyze_video.py`)**: OpenAI SDK client integration targeting the Fireworks AI endpoints. Enforces raw JSON output mode.
+  Automatic fallback logic from the primary model `minimax-m3` to the secondary model `qwen3p7-plus` if the primary model fails.
+- **Unified Video Analysis**: Single unified call to the Fireworks VLM. Receives a structured JSON payload containing video understanding metadata and all 4 caption styles simultaneously.
 
 ### Phase 2 — Prompts & Constraints
 - **Prompt Builder (`prompts.py`)**: Highly constrained unified prompt enforcing
@@ -49,26 +47,27 @@ each build phase of the video captioning integration.
   dependencies, runs `run_all.py`. The built, self-contained image is published on Docker Hub as `abbhiinay/video-captioning:latest`.
 
 ### Phase 4 — Self-Eval & Iteration
-- **Sanity Checks (`eval/self_judge.py`)**: Automated judge script calling the
-  Gemini API to score generated captions (1–5 scale) for style alignment.
+- **Sanity Checks (`eval/self_judge.py`)**: Automated judge script calling the Fireworks VLM to score generated captions (0.0 to 1.0 scale) for style alignment using the formal caption as the ground-truth scene context.
 - **Prompt Tightening**: Prompt constraints were refined based on self-eval
   feedback to eliminate planning preambles and style drift.
 
 ### Phase 5 — Production Hardening
 
 #### JSON Robustness (Task 1 & 2)
-The pipeline now handles malformed Gemini responses in three layers:
+The pipeline now handles malformed VLM responses in three layers:
 1. **Strip markdown fences** — removes any accidental ` ```json ``` ` wrapping.
 2. **Parse normally** — attempts `json.loads()` on the cleaned text.
-3. **Repair-prompt retry** — if parsing fails, a second Gemini call is made with
+3. **Repair-prompt retry** — if parsing fails, a second VLM call is made with
    an explicit repair prompt that shows the bad response and requests clean JSON.
-4. **Graceful fallback** — if the retry also fails, empty captions are returned.
+4. **Graceful fallback** — if the retry also fails, a safe backup description is generated.
    The batch continues. No exception propagates out of `process_task`.
 
 After parsing, `_validate_and_patch()` ensures:
 - `captions.formal`, `captions.sarcastic`, `captions.humorous_tech`,
-  `captions.humorous_non_tech` all exist (empty string default).
+  `captions.humorous_non_tech` all exist.
 - All `video_understanding` fields exist with safe defaults.
+- No `KeyError` is ever raised.
+- Automatic word count truncation (retains the first 20 words) ensures captions are never blanked out due to minor formatting deviations.
 - No `KeyError` is ever raised.
 
 #### Anti-Hallucination Prompt (Task 3)
@@ -105,7 +104,7 @@ caption labels, and numbering from appearing in caption values.
 Values outside this set are normalised to "unknown" by post-parse validation.
 
 #### apparent_emotion (Task 10)
-The `emotion` field is replaced by `apparent_emotion`. Gemini is instructed to
+The `emotion` field is replaced by `apparent_emotion`. The VLM is instructed to
 describe only visible facial expressions or body language — never to infer
 internal emotional states. If no person is visible or expression is ambiguous,
 "unknown" is returned.
@@ -135,7 +134,7 @@ or `IndexError` can escape from any module.
 ### Phase 6 — Interactive Web Application & API
 - **FastAPI Server (`api/main.py`)**: Exposes `GET /api/health` for server diagnostics and `POST /api/caption` to handle dynamic, real-time video uploads, async frame extraction, and multi-style caption generation.
 - **Async Processing**: Saves uploaded files asynchronously using `aiofiles` and runs CPU-bound OpenCV frame extraction via `asyncio.to_thread` to ensure non-blocking server performance.
-- **React Frontend (`web/src/App.jsx`)**: Fully styled web interface displaying progress stages ("Uploading video", "Extracting frames", "Analyzing with Gemini") and mapping the returned JSON to stylized cards (formal, sarcastic, etc.).
+- **React Frontend (`web/src/App.jsx`)**: Fully styled web interface displaying progress stages ("Uploading video", "Extracting frames", "Analyzing with Fireworks VLM") and mapping the returned JSON to stylized cards (formal, sarcastic, etc.).
 - **Vite API Proxy**: Configured proxy in `web/vite.config.js` to route `/api/*` traffic transparently to the backend port `8000`.
 
 ---

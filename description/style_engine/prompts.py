@@ -96,7 +96,8 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
 
         "UNIVERSAL CAPTION RULES (apply to ALL styles):\n"
         # ── Task 7: One sentence ───────────────────────────────────────────
-        "• Each caption MUST be exactly ONE sentence. No full stops in the middle.\n"
+        "• Each caption MUST be exactly ONE sentence. Never write multiple sentences. "
+        "Do not use full stops, question marks, or exclamation marks except at the very end of the caption.\n"
         # ── Task 8: Clean output ───────────────────────────────────────────
         "• Output raw caption text ONLY. "
         "No markdown, no quotes, no bullet points, no hashtags, "
@@ -107,12 +108,14 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
         # ── Task 7: Anti Repetition ─────────────────────────────────────────
         "• Avoid repeating the same uncommon words across all four captions. "
         "Each caption should sound independently written.\n"
-        # ── Task 2: Fact consistency (Wording Not Facts) ────────────────────
+        # ── Task 4: Fact consistency (Wording Not Facts) ────────────────────
         "• ALL requested captions MUST describe the SAME scene. "
         "Only the wording changes between styles. "
         "Facts must remain identical. Objects remain identical. "
         "Actions remain identical. Visible text remains identical. "
-        "No style may introduce new facts or assumptions not in the video.\n\n"
+        "No style may introduce new facts, unobserved objects, or assumptions not in the video. "
+        "For sarcastic and humorous styles, weave the joke directly around the physical objects and actions "
+        "described in the formal caption, ensuring high factual consistency.\n\n"
 
         # ── Per-style rules ────────────────────────────────────────────────
         "PER-STYLE RULES:\n"
@@ -120,21 +123,18 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
         # ── Task 3: Shorter Captions (Formal 12-16, max 18) ───────────────
         "• formal: Objective, factual, single sentence. "
         "12 to 16 words. Hard maximum 18 words. "
-        "Long captions introduce unnecessary opportunities for hallucination. "
         "Professional tone. No opinions, no assumptions, no adjectives "
         "that are not directly observable. No emojis.\n"
 
         # ── Task 3: Sarcastic max 16 words ─────────────────────────────────
         "• sarcastic: Witty, dry sarcasm, playful exaggeration. "
-        "Maximum 16 words. Single sentence. "
-        "No offensive jokes. No dark humor. Social-media tone.\n"
+        "Directly critique or ironically highlight the main action or setting described in the formal caption. "
+        "Maximum 16 words. Single sentence. No offensive jokes.\n"
 
         # ── Task 5: Tech humor ─────────────────────────────────────────────
-        "• humorous_tech: MUST directly reference at least one specific visible "
-        "object or visible action from the video using a software engineering "
-        "metaphor. Avoid generic software jokes. Instead, bind the joke to "
-        "visible objects. Example mappings: Keyboard -> git merge, Traffic -> "
-        "deadlock, Cat -> deploy, Bus -> background process, Monitor -> dashboard. "
+        "• humorous_tech: Create a clever software engineering joke or metaphor "
+        "that maps directly to the visible actions and objects in the scene. "
+        "Ensure the tech comparison does not obscure the physical reality of the scene. "
         "Maximum 16 words. Single sentence.\n"
 
         # ── Task 6: Non-tech humor ─────────────────────────────────────────

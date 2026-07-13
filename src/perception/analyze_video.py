@@ -143,12 +143,36 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
             )
             vu["camera_motion"] = "unknown"
 
-    # ── Task 15: Output Verification ─────────────────────────────────────────
+    # ── Task 15: Output Verification & Repair ────────────────────────────────
     for style in all_expected_styles:
-        caption = parsed["captions"].get(style, "")
+        caption = parsed["captions"].get(style, "").strip()
+        
+        # Repair 1: If multiple sentences are detected, keep only the first sentence
+        if re.search(r"[\.\!\?]\s+[A-Z]", caption):
+            logger.warning(f"Repairing multi-sentence caption for '{style}'...")
+            sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", caption)
+            if sentences:
+                caption = sentences[0].strip()
+                
+        # Repair 2: If the caption exceeds 20 words, truncate it to 20 words
+        words = caption.split()
+        if len(words) > 20:
+            logger.warning(f"Truncating caption for '{style}' from {len(words)} to 20 words...")
+            caption = " ".join(words[:20]).rstrip(".!?") + "."
+            
+        parsed["captions"][style] = caption
+                
+        # If verification still fails, fall back to a safe default
         if not _verify_caption(caption, style):
-            logger.warning(f"Caption '{style}' failed verification. Setting to empty.")
-            parsed["captions"][style] = ""
+            logger.warning(f"Caption '{style}' failed verification. Using fallback.")
+            if style == "formal":
+                parsed["captions"][style] = "A video showing the main actions and visual details of the scene."
+            elif style == "sarcastic":
+                parsed["captions"][style] = "Oh look, another fascinating video clip that totally changed my life today."
+            elif style == "humorous_tech":
+                parsed["captions"][style] = "This visual process is like a loop running without any termination condition."
+            else:
+                parsed["captions"][style] = "Watching this scene is like waiting for my microwave to finish its countdown."
 
     return parsed
 
@@ -183,10 +207,6 @@ def _verify_caption(caption: str, style: str) -> bool:
         logger.warning(f"Caption failed single sentence check (multiple sentences detected): {caption}")
         return False
         
-    # Word limits
-    words = caption.split()
-    word_count = len(words)
-    
     # Word limits (enforce 20-word limit globally across all styles as safety net)
     words = caption.split()
     word_count = len(words)

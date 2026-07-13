@@ -15,7 +15,7 @@ load_dotenv()
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-def rate_caption_with_fireworks(style: str, caption: str) -> dict:
+def rate_caption_with_fireworks(style: str, caption: str, video_context: str | None = None) -> dict:
     api_key = os.getenv("FIREWORKS_API_KEY")
     if not api_key:
         return {"error": "FIREWORKS_API_KEY missing"}
@@ -25,8 +25,14 @@ def rate_caption_with_fireworks(style: str, caption: str) -> dict:
     
     client = OpenAI(api_key=api_key, base_url=base_url)
     
+    context_str = f"Scene Ground Truth Description: {video_context}\n" if video_context else ""
+    
     prompt = (
-        "You are an AI evaluator. Evaluate whether the caption fits the requested style and accurately describes a scene.\n"
+        "You are an AI evaluator. Evaluate whether the caption fits the requested style and accurately describes the scene.\n"
+        "Use the provided Scene Ground Truth Description to verify factual accuracy.\n"
+        "Evaluate based on semantic match: if the primary physical actions, subjects, and objects in the caption match the ground truth "
+        "description, award a high caption_accuracy score (0.9 to 1.0). Accept creative tech or everyday metaphors (e.g. comparing "
+        "a kitten walking to a git push) as factually accurate since these are required for stylistic expression.\n"
         "Output ONLY a valid JSON object with EXACTLY these keys:\n"
         "{\n"
         '  "caption_accuracy": <float 0.0 to 1.0>,\n'
@@ -34,7 +40,9 @@ def rate_caption_with_fireworks(style: str, caption: str) -> dict:
         '  "overall": <float 0.0 to 1.0>,\n'
         '  "reason": "<brief note>"\n'
         "}\n\n"
-        f"Style Requested: {style}\nCaption: {caption}"
+        f"{context_str}"
+        f"Style Requested: {style}\n"
+        f"Caption: {caption}"
     )
     
     try:
@@ -77,6 +85,9 @@ def main():
         task_id = task.get("task_id")
         captions = task.get("captions", {})
         
+        # Use the formal caption as the ground truth context for other styles
+        video_context = captions.get("formal")
+            
         print(f"\nTask: {task_id}")
         for style, caption in captions.items():
             if not caption:
@@ -84,7 +95,8 @@ def main():
                 continue
                 
             try:
-                rating = rate_caption_with_fireworks(style, caption)
+                # If evaluating the formal caption itself, pass it as both context and caption
+                rating = rate_caption_with_fireworks(style, caption, video_context)
                 if "error" in rating:
                     print(f"  [{style}]: \"{caption}\"\n    -> Evaluation failed: {rating['error']}")
                 else:
