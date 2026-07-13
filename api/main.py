@@ -8,9 +8,16 @@ Endpoints:
   GET  /api/health   — Readiness check.
 """
 
+import sys
+import os
+
+# Add project root to sys.path so sibling directories can be imported
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import json
 import logging
-import os
 import tempfile
 from datetime import datetime
 
