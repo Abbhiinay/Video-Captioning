@@ -1,7 +1,7 @@
 """
-gemini_service.py
+caption_service.py
 
-FastAPI backend adapter delegating video captioning to the new Fireworks VLM pipeline.
+FastAPI backend service delegating video captioning to the new Fireworks VLM pipeline.
 Replaces the old Google Gemini API logic while keeping backend routing functional.
 """
 

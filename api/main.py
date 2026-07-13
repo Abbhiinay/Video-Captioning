@@ -27,7 +27,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from frame_extractor import extract_frames
-from gemini_service import generate_captions
+from caption_service import generate_captions
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
