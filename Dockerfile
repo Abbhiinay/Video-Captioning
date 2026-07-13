@@ -41,9 +41,9 @@ ENV FIREWORKS_VISION_MODEL=accounts/fireworks/models/minimax-m3
 ENV FIREWORKS_FALLBACK_VISION_MODEL=accounts/fireworks/models/qwen3p7-plus
 ENV FRAME_COUNT=5
 ENV ENABLE_SCENE_DETECTION=true
+ENV MAX_WORKERS=4
 ENV INPUT_TASKS_PATH=/input/tasks.json
 ENV OUTPUT_RESULTS_PATH=/output/results.json
-
 RUN useradd -m -u 1000 runner
 RUN chown -R runner:runner /app /input /output
 USER runner

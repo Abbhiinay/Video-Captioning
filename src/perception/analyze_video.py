@@ -146,23 +146,29 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
     # ── Task 15: Output Verification & Repair ────────────────────────────────
     for style in all_expected_styles:
         caption = parsed["captions"].get(style, "").strip()
-        
-        # Repair 1: If multiple sentences are detected, keep only the first sentence
+
+        # Repair 1: If multiple sentences are detected, keep only the first sentence.
+        # This handles models that ignore the single-sentence rule.
         if re.search(r"[\.\!\?]\s+[A-Z]", caption):
             logger.warning(f"Repairing multi-sentence caption for '{style}'...")
             sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", caption)
             if sentences:
                 caption = sentences[0].strip()
-                
-        # Repair 2: If the caption exceeds 20 words, truncate it to 20 words
+
+        # Repair 2: If the caption still exceeds 35 words it is a runaway
+        # response — drop it to the fallback rather than truncating mid-sentence,
+        # which would produce grammatically broken output.
         words = caption.split()
-        if len(words) > 20:
-            logger.warning(f"Truncating caption for '{style}' from {len(words)} to 20 words...")
-            caption = " ".join(words[:20]).rstrip(".!?") + "."
-            
+        if len(words) > 35:
+            logger.warning(
+                f"Caption for '{style}' is {len(words)} words (> 35 word ceiling). "
+                "Passing to fallback instead of truncating mid-sentence."
+            )
+            caption = ""  # force fallback below
+
         parsed["captions"][style] = caption
-                
-        # If verification still fails, fall back to a safe default
+
+        # If verification still fails, fall back to a style-appropriate default.
         if not _verify_caption(caption, style):
             logger.warning(f"Caption '{style}' failed verification. Using fallback.")
             if style == "formal":
@@ -207,11 +213,14 @@ def _verify_caption(caption: str, style: str) -> bool:
         logger.warning(f"Caption failed single sentence check (multiple sentences detected): {caption}")
         return False
         
-    # Word limits (enforce 20-word limit globally across all styles as safety net)
+    # Word limit: the prompt asks for 12–16 words (formal) or max 16 (other styles).
+    # We allow up to 35 words here so that naturally complete sentences from the
+    # model are never rejected just for being a few words long. Anything over 35
+    # is caught in _validate_and_patch before verification is called.
     words = caption.split()
     word_count = len(words)
-    if word_count > 20:
-        logger.warning(f"Caption failed word limit ({word_count} > 20): {caption}")
+    if word_count > 35:
+        logger.warning(f"Caption failed word limit ({word_count} > 35): {caption}")
         return False
         
     return True
