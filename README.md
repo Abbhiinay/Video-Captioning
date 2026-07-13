@@ -110,8 +110,8 @@ python scripts/run_all.py
 
 Override paths:
 ```bash
-$env:INPUT_TASKS_PATH="data/tasks.json"
-$env:OUTPUT_RESULTS_PATH="data/outputs/results.json"
+$env:INPUT_TASKS_PATH="input/tasks.json"
+$env:OUTPUT_RESULTS_PATH="output/results.json"
 python scripts/run_all.py
 ```
 
@@ -144,7 +144,7 @@ docker build -t video-captioning:latest .
 ### 2. Run the Container
 Run the container without passing any environment variables or API keys, as they are baked directly into the image:
 ```powershell
-docker run -v "${PWD}/data:/input" -v "${PWD}/data/outputs:/output" video-captioning:latest
+docker run -v "${PWD}/input:/input" -v "${PWD}/output:/output" video-captioning:latest
 ```
 *(Or on Linux/macOS, replace `${PWD}` with `$(pwd)`)*
 
@@ -155,7 +155,7 @@ If you wish to pull the pre-built, self-contained image directly from Docker Hub
 docker pull abbhiinay/video-captioning:latest
 
 # Run the container (PowerShell)
-docker run -v "${PWD}/data:/input" -v "${PWD}/data/outputs:/output" abbhiinay/video-captioning:latest
+docker run -v "${PWD}/input:/input" -v "${PWD}/output:/output" abbhiinay/video-captioning:latest
 ```
 
 ---

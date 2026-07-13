@@ -147,7 +147,7 @@ or `IndexError` can escape from any module.
 
 ### Batch Run Verification
 The pipeline successfully executed on the three specified test videos. The output
-JSON file `data/outputs/results.json` matches the submission format:
+JSON file `output/results.json` matches the submission format:
 
 ```json
 [
