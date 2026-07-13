@@ -2,73 +2,136 @@
   {
     "task_id": "v1",
     "captions": {
-      "formal": "A time-lapse captures vehicles traveling along a multi-lane urban street lined with autumn trees and high-rise buildings.",
-      "sarcastic": "Oh great, another time-lapse of cars inching forward while autumn trees silently judge everyone.",
-      "humorous_tech": "The city's traffic threads run on a tight loop with zero garbage collection in sight.",
-      "humorous_non_tech": "Watching rush hour traffic is like watching everyone collectively forget where they parked."
+      "formal": "A light-colored dog with a red collar runs across a sunlit grassy field toward distant trees.",
+      "sarcastic": "Oh sure, just sprint across an entire field while I stand here holding the camera, very helpful.",
+      "humorous_tech": "The dog deployed into the field like a process running without any input validation.",
+      "humorous_non_tech": "The dog bolted across the yard like it heard the treat bag open three blocks away."
     }
   },
   {
     "task_id": "v2",
     "captions": {
-      "formal": "A ginger kitten walks forward through green foliage and branches toward the camera on a dirt path.",
-      "sarcastic": "Oh sure, just stroll through the bushes like you own the place, tiny orange explorer.",
-      "humorous_tech": "This kitten is clearly running a recursive depth-first search through the foliage.",
-      "humorous_non_tech": "When you finally find the snack your sibling hid in the bushes."
+      "formal": "An aerial camera pans right across a waterfront city skyline featuring skyscrapers and boats at sunset.",
+      "sarcastic": "Oh great, another sweeping skyline shot because nothing says content like watching buildings stand completely still.",
+      "humorous_tech": "The camera's pan function runs smoothly while skyscrapers stay in production with zero new commits.",
+      "humorous_non_tech": "Watching this skyline pan is like watching my uncle slowly turn his head at a buffet."
     }
   },
   {
     "task_id": "v3",
     "captions": {
-      "formal": "A professional woman works diligently at her computer workstation in a modern office environment, demonstrating focused concentration as she types.",
-      "sarcastic": "Oh look, another day, another spreadsheet pretending to be 'meaningful work' while the office plants silently judge us all.",
-      "humorous_tech": "When the Wi-Fi is stable but your motivation isn't: a real-time demonstration of typing while your soul buffers.",
-      "humorous_non_tech": "She's typing so intensely, even the office plants are leaning in to read what she's writing."
+      "formal": "A vibrant sunset casts pink and orange hues across the sky and ocean surface.",
+      "sarcastic": "Oh great, another sunset that will be ruined by someone posting it on Instagram.",
+      "humorous_tech": "The sky's color palette is running a smooth gradient render across the ocean's GPU.",
+      "humorous_non_tech": "The sky is showing off again while the ocean just sits there reflecting everything."
     }
   },
   {
     "task_id": "v4",
     "captions": {
-      "formal": "An aerial camera tracks over a forested mountain range featuring rocky peaks and a distant hazy city.",
-      "sarcastic": "Oh wonderful, mountains so remote even the rocks outnumber every human by a billion to zero.",
-      "humorous_tech": "These rocky peaks look like legacy code, ancient, untouched, and nobody dares deploy to production.",
-      "humorous_non_tech": "These mountains are like my Monday morning, rocky, green, and way too far from coffee."
+      "formal": "A small ginger kitten walks forward through green foliage and branches on a dirt path.",
+      "sarcastic": "Oh great, the tiny orange kitten approaches with the confidence of a lion through the bushes.",
+      "humorous_tech": "This ginger kitten is running version 1.0 of the cute approach algorithm straight toward the camera.",
+      "humorous_non_tech": "That ginger kitten strutting through the bushes like it owns the whole neighborhood dirt path."
     }
   },
   {
     "task_id": "v5",
     "captions": {
-      "formal": "A tranquil coastal landscape featuring ocean waves rhythmically rolling onto a pebbly beach, framed by a verdant cliff rising majestically.",
-      "sarcastic": "Oh look, another wave.",
-      "humorous_tech": "The ocean's wave function has been successfully compiled and deployed to the shoreline, with no crashes detected in the foam.",
-      "humorous_non_tech": "The ocean keeps sending waves like emails you forgot to unsubscribe from — they just keep coming and coming."
+      "formal": "A time-lapse captures vehicles flowing along a multi-lane urban street lined with autumn trees and high-rise buildings.",
+      "sarcastic": "Oh wonderful, another time-lapse of cars inching forward while autumn trees silently judge everyone's commute.",
+      "humorous_tech": "This city's traffic thread is stuck in an infinite loop with no garbage collection in sight.",
+      "humorous_non_tech": "Watching this traffic jam feels like the school pickup line, except the cars actually move sometimes."
     }
   },
   {
     "task_id": "v6",
     "captions": {
-      "formal": "Pedestrians and vehicles navigate a busy urban intersection beneath large buildings displaying advertisements and Japanese signage.",
-      "sarcastic": "Pedestrians play human Frogger while buses casually cut through the chaos like they own the place.",
-      "humorous_tech": "This intersection runs like a multithreaded system with zero mutex locks and pedestrians as unsynchronized threads.",
-      "humorous_non_tech": "It's like the world's biggest game of red light green light except nobody ever actually stops."
+      "formal": "A static elevated view of a busy Japanese urban intersection where pedestrians and vehicles move in coordinated patterns through multiple.",
+      "sarcastic": "Oh look, another day where hundreds of people miraculously avoid becoming hood ornaments while crossing eight different ways at once.",
+      "humorous_tech": "Behold the ancient human algorithm: if(light==green){walk();} else if(light==red){wait();} — running concurrently across 500 threads with zero race conditions.",
+      "humorous_non_tech": "It's like watching a giant game of Frogger, except the frogs have shopping bags and the cars are way more."
     }
   },
   {
     "task_id": "v7",
     "captions": {
-      "formal": "A person in a striped apron transfers diced zucchini from a knife onto a wooden cutting board.",
-      "sarcastic": "Oh look, another chef showing off their knife-balancing zucchini trick like it's a culinary magic show.",
-      "humorous_tech": "This chef runs a manual data migration, transferring diced zucchini from knife array to cutting board database.",
-      "humorous_non_tech": "My knife doubles as a serving spoon because apparently I can't be bothered to buy a spatula."
+      "formal": "A woman types on a keyboard while working at a computer monitor in a modern office.",
+      "sarcastic": "She stares at that monitor like it personally owes her an explanation and a refund.",
+      "humorous_tech": "Her keyboard typing hits production server throughput while her monitor renders zero exceptions.",
+      "humorous_non_tech": "She's typing so intensely at that monitor, even her coffee would be afraid to interrupt."
     }
   },
   {
     "task_id": "v8",
     "captions": {
-      "formal": "A lone athlete sprints across a marked running track at an outdoor stadium, passing lane numbers one through seven before.",
-      "sarcastic": "Oh look, someone finally decided to use those seven perfectly good lanes — and only for about three seconds.",
-      "humorous_tech": "Frame 0: track.exe is idle.",
-      "humorous_non_tech": "The track was lonely, then a guy showed up for a quick cameo, and now the track is lonely again."
+      "formal": "An aerial camera tracks forward over rocky mountain peaks covered in dense green vegetation.",
+      "sarcastic": "Oh great, another drone shot where the only action is the camera slowly creeping over rocks.",
+      "humorous_tech": "Like a slow git push through the mountains, committing every rocky peak to the repo.",
+      "humorous_non_tech": "Like watching your uncle slowly inch forward in a grocery store parking lot."
+    }
+  },
+  {
+    "task_id": "v9",
+    "captions": {
+      "formal": "A person types on a silver laptop keyboard with a ringed hand in warm indoor lighting.",
+      "sarcastic": "Typing on a laptop like the deadline is tomorrow, because it probably is.",
+      "humorous_tech": "This keyboard runs on pure manual input with zero latency and full finger-driven API.",
+      "humorous_non_tech": "Fingers dancing across laptop keys like a tiny piano recital in golden light."
+    }
+  },
+  {
+    "task_id": "v10",
+    "captions": {
+      "formal": "A vehicle travels along a wet city street at night through a rain-covered windshield.",
+      "sarcastic": "Oh wonderful, another thrilling drive through a rain-blurred windshield where streetlights look like floating UFOs.",
+      "humorous_tech": "This windshield's render buffer is clearly leaking pixels, causing streetlights to bloom into circular bokeh artifacts.",
+      "humorous_non_tech": "Driving at night feels like staring at a lava lamp when raindrops completely cover your windshield."
+    }
+  },
+  {
+    "task_id": "v11",
+    "captions": {
+      "formal": "Three individuals engage in a relaxed conversation at a rooftop table, enjoying beverages against the backdrop of an urban skyline.",
+      "sarcastic": "Oh look, another rooftop hangout with beers — because nothing says 'authentic friendship' like a skyline and three IPAs.",
+      "humorous_tech": "Three friends running a real-time social protocol over local IPAs — latency is low, vibes are high, and the only.",
+      "humorous_non_tech": "Three friends having a rooftop chat that absolutely could have been a group text, but at least the beer is."
+    }
+  },
+  {
+    "task_id": "v12",
+    "captions": {
+      "formal": "A tranquil coastal landscape featuring ocean waves gently breaking onto a pebble beach, framed by a towering green cliff under.",
+      "sarcastic": "Oh look, another wave.",
+      "humorous_tech": "The ocean's wave function has collapsed into a continuous loop of foam.exe crashing on pebble.shore — no patch update required.",
+      "humorous_non_tech": "The ocean keeps throwing water at the beach like it's trying to get the pebbles' attention, and the pebbles keep."
+    }
+  },
+  {
+    "task_id": "v13",
+    "captions": {
+      "formal": "A train arrives at a busy station platform while passengers wait on benches and stand nearby.",
+      "sarcastic": "A train arrives at the platform, saving everyone from their thrilling bench-sitting competition.",
+      "humorous_tech": "The train finally deployed to production after passengers waited in the staging environment on benches.",
+      "humorous_non_tech": "A train pulls into the station like a late dinner guest finally finding the right address."
+    }
+  },
+  {
+    "task_id": "v14",
+    "captions": {
+      "formal": "A chef in a striped apron carefully transfers diced zucchini from a knife onto a wooden cutting board in a.",
+      "sarcastic": "Oh look, another cooking video where someone dramatically scrapes vegetables off a knife like it's a culinary masterpiece.",
+      "humorous_tech": "User executes zucchini.transfer(knife -> cuttingBoard) with precision slicing algorithm.",
+      "humorous_non_tech": "The chef is playing a real-life game of 'Operation' with zucchini, and the bushes are trying to steal the camera's."
+    }
+  },
+  {
+    "task_id": "v15",
+    "captions": {
+      "formal": "A man runs across a red athletic track marked with lane numbers one through seven.",
+      "sarcastic": "Oh great, another solo jogger treating the empty stadium seats like his personal audience.",
+      "humorous_tech": "This runner is just a single sprite moving across the track's render frame.",
+      "humorous_non_tech": "He's running laps like the empty stadium seats are his personal cheering section."
     }
   }
 ]
