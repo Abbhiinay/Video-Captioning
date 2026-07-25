@@ -59,6 +59,20 @@ RESULTS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "outputs")
 STYLES = ["formal", "sarcastic", "humorous_tech", "humorous_non_tech"]
 
 
+@app.get("/")
+async def root():
+    """Root endpoint returning api metadata."""
+    return {
+        "name": "CaptionAI API",
+        "description": "AI-powered multi-style video caption generator",
+        "status": "active",
+        "endpoints": {
+            "health": "/api/health",
+            "caption": "/api/caption"
+        }
+    }
+
+
 @app.get("/api/health")
 async def health():
     """Readiness check."""
