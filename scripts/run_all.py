@@ -4,9 +4,10 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Ensure project root is in Python path so absolute imports work when run as script
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
 
 from dotenv import load_dotenv
 load_dotenv() # Load environment variables from .env if present
@@ -24,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 def main():
     # 1. Validate environment variables (fail fast)
-    fireworks_key = os.getenv("FIREWORKS_API_KEY")
+    from config.settings import GEMINI_API_KEY
 
     missing = []
-    if not fireworks_key:
-        missing.append("FIREWORKS_API_KEY")
+    if not GEMINI_API_KEY:
+        missing.append("GEMINI_API_KEY")
 
     if missing:
         logger.error(f"Initialization Failed: Missing required environment variable(s): {', '.join(missing)}")

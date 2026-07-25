@@ -3,7 +3,7 @@ import sys
 import json
 import logging
 from dotenv import load_dotenv
-from openai import OpenAI
+import requests
 
 # Ensure project root is in path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,15 +15,17 @@ load_dotenv()
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
-def rate_caption_with_fireworks(style: str, caption: str, video_context: str | None = None) -> dict:
-    api_key = os.getenv("FIREWORKS_API_KEY")
+def rate_caption_with_gemini(style: str, caption: str, video_context: str | None = None) -> dict:
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        return {"error": "FIREWORKS_API_KEY missing"}
+        return {"error": "GEMINI_API_KEY missing"}
         
-    base_url = os.getenv("FIREWORKS_BASE_URL", "https://api.fireworks.ai/inference/v1")
-    model = os.getenv("FIREWORKS_VISION_MODEL", "accounts/fireworks/models/minimax-m3")
-    
-    client = OpenAI(api_key=api_key, base_url=base_url)
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model}:generateContent?key={api_key}"
+    )
+    headers = {"Content-Type": "application/json"}
     
     context_str = f"Scene Ground Truth Description: {video_context}\n" if video_context else ""
     
@@ -45,13 +47,28 @@ def rate_caption_with_fireworks(style: str, caption: str, video_context: str | N
         f"Caption: {caption}"
     )
     
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.0
+        }
+    }
+    
     try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0
-        )
-        text = response.choices[0].message.content.strip()
+        response = requests.post(url, json=payload, headers=headers, timeout=30.0)
+        response.raise_for_status()
+        data = response.json()
+        
+        candidates = data.get("candidates") or []
+        if not candidates:
+            raise KeyError("candidates list is empty")
+        content = candidates[0].get("content") or {}
+        parts_res = content.get("parts") or []
+        if not parts_res:
+            raise KeyError("parts list is empty")
+        text = parts_res[0].get("text", "").strip()
+
         # Clean potential markdown fences
         if text.startswith("```"):
             lines = text.splitlines()
@@ -80,7 +97,7 @@ def main():
     with open(results_path, "r", encoding="utf-8") as f:
         results = json.load(f)
         
-    print("=== Caption Self-Evaluation (Fireworks) ===")
+    print("=== Caption Self-Evaluation (Gemini) ===")
     for task in results:
         task_id = task.get("task_id")
         captions = task.get("captions", {})
@@ -96,7 +113,7 @@ def main():
                 
             try:
                 # If evaluating the formal caption itself, pass it as both context and caption
-                rating = rate_caption_with_fireworks(style, caption, video_context)
+                rating = rate_caption_with_gemini(style, caption, video_context)
                 if "error" in rating:
                     print(f"  [{style}]: \"{caption}\"\n    -> Evaluation failed: {rating['error']}")
                 else:

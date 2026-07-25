@@ -21,11 +21,10 @@ import logging
 import os
 import re
 from typing import Any
-from openai import OpenAI
+import requests
 
 from config.settings import (
-    FIREWORKS_API_KEY, FIREWORKS_BASE_URL,
-    FIREWORKS_VISION_MODEL, FIREWORKS_FALLBACK_VISION_MODEL,
+    GEMINI_API_KEY, GEMINI_MODEL, GEMINI_FALLBACK_MODEL,
     TEMPERATURE, TOP_P, MAX_OUTPUT_TOKENS
 )
 from description.style_engine.prompts import get_unified_prompt, get_repair_prompt
@@ -65,9 +64,25 @@ _VIDEO_UNDERSTANDING_DEFAULTS: dict[str, Any] = {
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _encode_image(path: str) -> str:
-    """Read a JPEG frame and encode it as a base64 string."""
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
+    """Read a JPEG frame, resize it if too large, and encode it as a base64 string."""
+    import cv2
+    img = cv2.imread(path)
+    if img is None:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+
+    h, w = img.shape[:2]
+    max_dim = 1024
+    if h > max_dim or w > max_dim:
+        scale = max_dim / max(h, w)
+        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+
+    success, buffer = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    if not success:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+
+    return base64.b64encode(buffer).decode("utf-8")
 
 
 def _strip_markdown_fences(text: str) -> str:
@@ -226,35 +241,60 @@ def _verify_caption(caption: str, style: str) -> bool:
     return True
 
 
-def _call_fireworks_vlm(model_name: str, frame_paths: list[str], prompt: str) -> str:
-    """Send base64 images and a text prompt to Fireworks VLM via OpenAI SDK."""
-    if not FIREWORKS_API_KEY:
-        raise ValueError("FIREWORKS_API_KEY environment variable is not set.")
+def _call_gemini_vlm(model_name: str, frame_paths: list[str], prompt: str) -> str:
+    """Send base64 images and a text prompt to Google Gemini API via REST."""
+    if not GEMINI_API_KEY:
+        raise ValueError(
+            "GEMINI_API_KEY environment variable is not set. "
+            "Configure it in your .env file."
+        )
 
-    client = OpenAI(
-        api_key=FIREWORKS_API_KEY,
-        base_url=FIREWORKS_BASE_URL,
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model_name}:generateContent?key={GEMINI_API_KEY}"
     )
+    headers = {"Content-Type": "application/json"}
 
-    content = [{"type": "text", "text": prompt}]
+    # Build request parts
+    parts = [{"text": prompt}]
     for path in frame_paths:
         if os.path.exists(path):
             b64_data = _encode_image(path)
-            content.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{b64_data}"}
+            parts.append({
+                "inlineData": {
+                    "mimeType": "image/jpeg",
+                    "data": b64_data
+                }
             })
 
-    messages = [{"role": "user", "content": content}]
+    payload = {
+        "contents": [{"parts": parts}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": TEMPERATURE,
+            "topP": TOP_P,
+            "maxOutputTokens": MAX_OUTPUT_TOKENS,
+        },
+    }
 
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=messages,
-        temperature=TEMPERATURE,
-        top_p=TOP_P,
-        max_tokens=MAX_OUTPUT_TOKENS,
-    )
-    return response.choices[0].message.content or ""
+    response = requests.post(url, json=payload, headers=headers, timeout=60.0)
+    response.raise_for_status()
+    
+    data = response.json()
+    try:
+        candidates = data.get("candidates") or []
+        if not candidates:
+            raise KeyError("candidates list is empty")
+        content = candidates[0].get("content") or {}
+        parts_res = content.get("parts") or []
+        if not parts_res:
+            raise KeyError("parts list is empty")
+        text = parts_res[0].get("text", "")
+        return text
+    except (KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(
+            f"Unexpected Gemini response structure: {exc}. Response: {data}"
+        ) from exc
 
 
 # ── Public API ─────────────────────────────────────────────────────────────────
@@ -265,7 +305,7 @@ def analyze_video(
     styles: list[str],
 ) -> dict:
     """
-    Call Fireworks VLM to analyze frames and generate all requested captions
+    Call Gemini VLM to analyze frames and generate all requested captions
     in a single API call with automatic fallback and JSON repair retry.
     """
     if not frame_paths:
@@ -276,19 +316,19 @@ def analyze_video(
 
     # ── Attempt 1: primary call with VLM fallback ───────────────────────────
     logger.info(
-        f"Calling Fireworks with {len(frame_paths)} frames "
+        f"Calling Gemini with {len(frame_paths)} frames "
         f"for perception + caption generation (styles={styles})."
     )
     raw_text: str | None = None
     api_call_failed = False
     try:
-        raw_text = _call_fireworks_vlm(FIREWORKS_VISION_MODEL, frame_paths, unified_prompt)
+        raw_text = _call_gemini_vlm(GEMINI_MODEL, frame_paths, unified_prompt)
     except Exception as exc:
-        logger.error(f"Fireworks primary model call failed: {exc}. Trying fallback model...")
+        logger.error(f"Gemini primary model call failed: {exc}. Trying fallback model...")
         try:
-            raw_text = _call_fireworks_vlm(FIREWORKS_FALLBACK_VISION_MODEL, frame_paths, unified_prompt)
+            raw_text = _call_gemini_vlm(GEMINI_FALLBACK_MODEL, frame_paths, unified_prompt)
         except Exception as exc2:
-            logger.error(f"Fireworks fallback model call failed: {exc2}")
+            logger.error(f"Gemini fallback model call failed: {exc2}")
             api_call_failed = True
 
     parsed = None
@@ -305,38 +345,38 @@ def analyze_video(
                     break
             
             if all_valid:
-                logger.info("Fireworks response parsed and validated successfully on first attempt.")
+                logger.info("Gemini response parsed and validated successfully on first attempt.")
             else:
                 logger.warning(
-                    "First Fireworks response had missing or invalid captions — triggering repair retry."
+                    "First Gemini response had missing or invalid captions — triggering repair retry."
                 )
                 parsed = None
         else:
             logger.warning(
-                "First Fireworks response was not valid JSON — attempting JSON repair retry."
+                "First Gemini response was not valid JSON — attempting JSON repair retry."
             )
 
     # ── Attempt 2: repair-retry ───────────────────────────────────────────
     if parsed is None and raw_text is not None and not api_call_failed:
-        logger.info("Sending JSON repair prompt to Fireworks (retry attempt 1).")
+        logger.info("Sending JSON repair prompt to Gemini (retry attempt 1).")
         repair_prompt = get_repair_prompt(styles, raw_text)
         try:
-            raw_text = _call_fireworks_vlm(FIREWORKS_VISION_MODEL, frame_paths, repair_prompt)
-            logger.info("JSON repair retry: Fireworks primary model call succeeded.")
+            raw_text = _call_gemini_vlm(GEMINI_MODEL, frame_paths, repair_prompt)
+            logger.info("JSON repair retry: Gemini primary model call succeeded.")
         except Exception as exc:
-            logger.error(f"Fireworks repair primary model call failed: {exc}. Trying fallback...")
+            logger.error(f"Gemini repair primary model call failed: {exc}. Trying fallback...")
             try:
-                raw_text = _call_fireworks_vlm(FIREWORKS_FALLBACK_VISION_MODEL, frame_paths, repair_prompt)
-                logger.info("JSON repair retry: Fireworks fallback model call succeeded.")
+                raw_text = _call_gemini_vlm(GEMINI_FALLBACK_MODEL, frame_paths, repair_prompt)
+                logger.info("JSON repair retry: Gemini fallback model call succeeded.")
             except Exception as exc2:
-                logger.error(f"Fireworks repair fallback model call failed: {exc2}")
+                logger.error(f"Gemini repair fallback model call failed: {exc2}")
                 raw_text = None
 
         if raw_text:
             cleaned = _strip_markdown_fences(raw_text)
             parsed = _safe_parse_json(cleaned)
             if parsed:
-                logger.info("Fireworks response parsed successfully after repair retry.")
+                logger.info("Gemini response parsed successfully after repair retry.")
             else:
                 logger.error(
                     "JSON repair retry also produced invalid JSON. "

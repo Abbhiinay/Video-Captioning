@@ -1,8 +1,7 @@
 """
 caption_service.py
 
-FastAPI backend service delegating video captioning to the new Fireworks VLM pipeline.
-Replaces the old Google Gemini API logic while keeping backend routing functional.
+FastAPI backend service delegating video captioning to the Gemini VLM pipeline.
 """
 
 import sys
@@ -23,7 +22,7 @@ def generate_captions(
     styles: list[str] | None = None,
 ) -> dict:
     """
-    Delegate caption generation to the Fireworks visual perception pipeline.
+    Delegate caption generation to the Gemini visual perception pipeline.
     
     Args:
         frame_paths: Paths to the extracted JPEG frames.
@@ -32,5 +31,5 @@ def generate_captions(
     if styles is None:
         styles = ["formal", "sarcastic", "humorous_tech", "humorous_non_tech"]
         
-    logger.info("Delegating caption generation to the Fireworks VLM pipeline.")
+    logger.info("Delegating caption generation to the Gemini VLM pipeline.")
     return analyze_video(frame_paths, transcript=None, styles=styles)
