@@ -3,7 +3,7 @@ import sys
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Ensure project root is in Python path so absolute imports work when run as script
+#Ensures project root is in Python path so absolute imports work when run as script
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
@@ -54,9 +54,7 @@ def main():
             pass
         sys.exit(0)
 
-    # 3. Build task order map and write skeleton results IMMEDIATELY.
-    # This ensures all task IDs appear in the output file even if the
-    # container is killed mid-run before all tasks finish.
+    # 3. Build task order map and write skeleton results.
     task_order = {t.get("task_id"): idx for idx, t in enumerate(tasks)}
 
     results = [
@@ -158,8 +156,6 @@ def main():
 
         logger.info("Batch processing completed successfully. All outputs validated.")
     except Exception as e:
-        # Log the issue but still exit 0 — the output file was written with
-        # all task IDs present. A non-zero exit would discard valid results.
         logger.warning(f"Post-run validation warning (output file is still valid): {e}")
 
     sys.exit(0)

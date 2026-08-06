@@ -2,7 +2,7 @@
 
 An AI agent that watches a video clip and generates captions in multiple styles.
 
-Built on a **single unified Fireworks VLM API call** that performs visual
+Built on a **single unified Gemini VLM API call** that performs visual
 perception and multi-style caption generation simultaneously.
 
 ---
@@ -16,7 +16,7 @@ Video Clip
 Hybrid Frame Extraction  (OpenCV — uniform anchors + FPS-driven scene detection)
      │
      ▼
-Fireworks VLM            (Single API call — structured JSON output)
+Gemini VLM               (Single API call — structured JSON output)
      │
      ▼
 JSON Validation & Repair (Key validation · Retry-on-bad-JSON · Graceful fallback)
@@ -28,7 +28,7 @@ results.json             { task_id, captions: { formal, sarcastic, … } }
 ### Single-Pass Design
 
 The pipeline consolidates visual perception and all four caption styles into
-one Fireworks VLM API call. This means:
+one Gemini VLM API call. This means:
 
 - **Substantially fewer API calls** compared to a sequential per-style approach.
 - **Reduced latency** — one network round-trip instead of a waterfall.
@@ -78,10 +78,9 @@ pip install -r requirements.txt
 ### 2. Configure environment
 Copy `.env.example` to `.env` and fill in your values:
 ```env
-FIREWORKS_API_KEY=your_fireworks_api_key_here
-FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
-FIREWORKS_VISION_MODEL=accounts/fireworks/models/minimax-m3
-FIREWORKS_FALLBACK_VISION_MODEL=accounts/fireworks/models/qwen3p7-plus
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+GEMINI_FALLBACK_MODEL=gemini-2.0-flash
 
 FRAME_COUNT=5
 ENABLE_SCENE_DETECTION=true

@@ -1,12 +1,12 @@
 """
 analyze_video.py
 
-Calls Fireworks VLM with sampled video frames to produce a structured JSON response
+Calls Gemini VLM with sampled video frames to produce a structured JSON response
 containing both video understanding metadata and all requested caption styles
 in a single API call.
 
 Responsibilities:
-  - Build and send the unified prompt to Fireworks.
+  - Build and send the unified prompt to Gemini.
   - Strip any accidental markdown wrapping from the raw response.
   - Parse the JSON response with an automatic repair-retry on failure (Task 1).
   - Validate and back-fill every required key with safe defaults (Task 2).
@@ -46,15 +46,14 @@ ALLOWED_CAMERA_MOTIONS: frozenset[str] = frozenset(
     {"static", "pan", "tilt", "zoom", "tracking", "handheld", "unknown"}
 )
 
-# Sensible defaults for video_understanding fields.
 _VIDEO_UNDERSTANDING_DEFAULTS: dict[str, Any] = {
     "main_action": "unknown",
     "subjects": [],
     "objects": [],
     "setting": "unknown",
     "background": "unknown",
-    "apparent_emotion": "unknown",   # Task 10: replaces "emotion"
-    "camera_motion": "unknown",       # Task 9: always present
+    "apparent_emotion": "unknown",   
+    "camera_motion": "unknown",      
     "visible_text": "none",
     "important_events": [],
     "summary": "",
@@ -90,7 +89,6 @@ def _strip_markdown_fences(text: str) -> str:
     text = text.strip()
     # Remove leading fence (with optional language tag)
     text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
-    # Remove trailing fence
     text = re.sub(r"\s*```$", "", text)
     return text.strip()
 
@@ -163,10 +161,10 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
         caption = parsed["captions"].get(style, "").strip()
 
         # Repair 1: If multiple sentences are detected, keep only the first sentence.
-        # This handles models that ignore the single-sentence rule.
-        if re.search(r"[\.\!\?]\s+[A-Z]", caption):
+        # This handles models that ignore the single-sentence rule (ignoring ellipses).
+        if re.search(r"(?:(?<!\.)\.(?!\.)|[\!\?])\s+[A-Z]", caption):
             logger.warning(f"Repairing multi-sentence caption for '{style}'...")
-            sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z])", caption)
+            sentences = re.split(r"(?<=(?:(?<!\.)\.(?!\.)|[\!\?]))\s+(?=[A-Z])", caption)
             if sentences:
                 caption = sentences[0].strip()
 
@@ -213,25 +211,20 @@ def _verify_caption(caption: str, style: str) -> bool:
         logger.warning(f"Caption failed invalid_chars: {caption}")
         return False
         
-    # Numbering like "1. " or "Caption:"
     if re.match(r"^\d+\.", caption) or "caption:" in caption.lower():
         logger.warning(f"Caption failed numbering/prefix check: {caption}")
         return False
         
-    # Single sentence (exactly one ending punctuation mark, no internal sentence boundaries)
+    # Single sentence
     ends_with_punct = caption.endswith(".") or caption.endswith("!") or caption.endswith("?")
     if not ends_with_punct:
         logger.warning(f"Caption failed ending punctuation check: {caption}")
         return False
         
-    if re.search(r"[\.\!\?]\s+[A-Z]", caption):
+    if re.search(r"(?:(?<!\.)\.(?!\.)|[\!\?])\s+[A-Z]", caption):
         logger.warning(f"Caption failed single sentence check (multiple sentences detected): {caption}")
         return False
         
-    # Word limit: the prompt asks for 12–16 words (formal) or max 16 (other styles).
-    # We allow up to 35 words here so that naturally complete sentences from the
-    # model are never rejected just for being a few words long. Anything over 35
-    # is caught in _validate_and_patch before verification is called.
     words = caption.split()
     word_count = len(words)
     if word_count > 35:

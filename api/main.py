@@ -10,6 +10,7 @@ Endpoints:
 
 import sys
 import os
+import asyncio
 
 # Add project root to sys.path so sibling directories can be imported
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +27,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from frame_extractor import extract_frames
+from src.preprocessing.extract_frames import extract_frames
 from caption_service import generate_captions
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -131,7 +132,7 @@ async def caption_video(video: UploadFile = File(...)):
 
         # ── Extract frames (runs in thread pool) ─────────────────────
         logger.info(f"Extracting {FRAME_COUNT} frames...")
-        frame_paths = await extract_frames(video_path, n=FRAME_COUNT)
+        frame_paths = await asyncio.to_thread(extract_frames, video_path, FRAME_COUNT)
         logger.info(f"Extracted {len(frame_paths)} frame(s)")
 
         # ── Call Gemini for captions ──────────────────────────────────

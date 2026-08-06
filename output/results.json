@@ -2,10 +2,10 @@
   {
     "task_id": "v15",
     "captions": {
-      "formal": "A man runs across a red track with lane numbers visible, passing empty stadium seats.",
-      "sarcastic": "The lone runner truly brings the energy to these packed stadium seats.",
-      "humorous_tech": "This runner is executing a single-threaded process across the track's numbered lanes.",
-      "humorous_non_tech": "Just like my motivation on a Monday, this runner quickly passes through the frame."
+      "formal": "A man runs across an outdoor athletic track with visible lane markings and stadium seating in the background.",
+      "sarcastic": "Breaking news: a human is engaging in physical activity on a designated track.",
+      "humorous_tech": "Initiating 'runner.exe' on the track's rendering engine.",
+      "humorous_non_tech": "He's really giving those lane numbers a good show."
     }
   }
 ]
