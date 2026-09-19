@@ -3,22 +3,6 @@ prompts.py
 
 Builds the unified system prompt sent to Gemini for combined video perception
 and multi-style caption generation in a single API call.
-
-Prompt design principles implemented here:
-
-  Task 3  — Anti-hallucination rules: never invent objects, actions, identities,
-             or locations. Only describe visible evidence. Say "unknown" if unclear.
-  Task 4  — Fact consistency: all four captions describe the SAME scene; only
-             tone differs. No style may introduce new facts or assumptions.
-  Task 5  — Video-grounded humor: every humorous caption must reference at least
-             one visible object or action from the video.
-  Task 6  — Formal caption length: 15–18 words, hard max 20, single sentence.
-  Task 7  — One sentence: every caption regardless of style is exactly one sentence.
-  Task 8  — Clean output: no markdown, quotes, bullets, hashtags, emojis, labels,
-             numbering — raw caption text only.
-  Task 9  — camera_motion: always present; restricted to allowed values.
-  Task 10 — apparent_emotion: describes visible expression/body language only;
-             never infers internal state.
 """
 
 from __future__ import annotations
@@ -26,11 +10,8 @@ from __future__ import annotations
 import json
 
 
-# ── Allowed camera_motion values (mirrors analyze_video.py constant) ──────────
+# Allowed camera_motion values (mirrors analyze_video.py constant)
 CAMERA_MOTION_VALUES = "static | pan | tilt | zoom | tracking | handheld | unknown"
-
-
-# ── Primary unified prompt ─────────────────────────────────────────────────────
 
 def get_unified_prompt(requested_styles: list[str]) -> str:
     """
@@ -46,7 +27,7 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
     styles_block = _build_styles_schema(requested_styles)
 
     prompt = (
-        # ── Role & Generalization (Task 11) ───────────────────────────────
+        # Role & Generalization (Task 11)
         "You are an expert video analyst and factual caption writer. "
         "Analyze the provided video frames chronologically and produce "
         "a structured JSON response. "
@@ -55,11 +36,11 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
         "medical, manufacturing, construction, retail, and any other domain. "
         "Do not overfit to specific tropes.\n\n"
 
-        # ── Task 12: Prompt Quality (Observation -> Understanding -> Caption) ──
+        # Task 12: Prompt Quality (Observation -> Understanding -> Caption)
         "Follow a three-stage thinking process:\n"
         "Phase 1: Observation -> Phase 2: Understanding -> Phase 3: Caption Generation.\n\n"
 
-        # ── Task 1: Strict Factual Grounding ──────────────────────────────
+        # Task 1: Strict Factual Grounding
         "STRICT OBSERVATION RULES — you MUST follow all of these:\n"
         "• Only describe what is directly visible in the frames. "
         "Never invent details, objects, people, actions, or settings.\n"
@@ -95,20 +76,20 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
         "Follow ALL of the rules below for EVERY caption:\n\n"
 
         "UNIVERSAL CAPTION RULES (apply to ALL styles):\n"
-        # ── Task 7: One sentence ───────────────────────────────────────────
+        # Task 7: One sentence   
         "• Each caption MUST be exactly ONE sentence. Never write multiple sentences. "
         "Do not use full stops, question marks, or exclamation marks except at the very end of the caption.\n"
-        # ── Task 8: Clean output ───────────────────────────────────────────
+        # Task 8: Clean output   
         "• Output raw caption text ONLY. "
         "No markdown, no quotes, no bullet points, no hashtags, "
         "no emojis, no caption labels, no numbering.\n"
-        # ── Task 4: Visible Object Requirement ──────────────────────────────
+        # Task 4: Visible Object Requirement 
         "• Every caption must explicitly mention at least one visible object OR "
         "one visible action. Never generate generic captions.\n"
-        # ── Task 7: Anti Repetition ─────────────────────────────────────────
+        # Task 7: Anti Repetition 
         "• Avoid repeating the same uncommon words across all four captions. "
         "Each caption should sound independently written.\n"
-        # ── Task 4: Fact consistency (Wording Not Facts) ────────────────────
+        # Task 4: Fact consistency (Wording Not Facts) 
         "• ALL requested captions MUST describe the SAME scene. "
         "Only the wording changes between styles. "
         "Facts must remain identical. Objects remain identical. "
@@ -117,27 +98,27 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
         "For sarcastic and humorous styles, weave the joke directly around the physical objects and actions "
         "described in the formal caption, ensuring high factual consistency.\n\n"
 
-        # ── Per-style rules ────────────────────────────────────────────────
+        # PER-style rules 
         "PER-STYLE RULES:\n"
 
-        # ── Task 3: Shorter Captions (Formal 12-16, max 18) ───────────────
+        # Task 3: Shorter Captions (Formal 12-16, max 18) 
         "• formal: Objective, factual, single sentence. "
         "12 to 16 words. Hard maximum 18 words. "
         "Professional tone. No opinions, no assumptions, no adjectives "
         "that are not directly observable. No emojis.\n"
 
-        # ── Task 3: Sarcastic max 16 words ─────────────────────────────────
+        # Task 3: Sarcastic max 16 words 
         "• sarcastic: Witty, dry sarcasm, playful exaggeration. "
         "Directly critique or ironically highlight the main action or setting described in the formal caption. "
         "Maximum 16 words. Single sentence. No offensive jokes.\n"
 
-        # ── Task 5: Tech humor ─────────────────────────────────────────────
+        # Task 5: Tech humor 
         "• humorous_tech: Create a clever software engineering joke or metaphor "
         "that maps directly to the visible actions and objects in the scene. "
         "Ensure the tech comparison does not obscure the physical reality of the scene. "
         "Maximum 16 words. Single sentence.\n"
 
-        # ── Task 6: Non-tech humor ─────────────────────────────────────────
+        # Task 6: Non-tech humor 
         "• humorous_non_tech: MUST directly reference at least one specific "
         "visible object or visible action from the video in a relatable "
         "everyday context (office, family, friends, gym, food, school, etc.). "
@@ -145,7 +126,7 @@ def get_unified_prompt(requested_styles: list[str]) -> str:
         "Relate joke to visible action or visible object. "
         "Maximum 16 words. Single sentence.\n\n"
 
-        # ── JSON schema instruction ────────────────────────────────────────
+        # JSON schema instruction 
         "OUTPUT FORMAT\n"
         "Return ONLY a valid JSON object matching the schema below. "
         "Do NOT add markdown fences (```), comments, or any text outside the JSON.\n\n"
@@ -184,7 +165,7 @@ def get_repair_prompt(requested_styles: list[str], bad_response: str) -> str:
     )
 
 
-# ── Private helpers ────────────────────────────────────────────────────────────
+# Private helpers 
 
 def _build_styles_schema(requested_styles: list[str]) -> str:
     """Build a comma-separated string of requested style names (for display)."""

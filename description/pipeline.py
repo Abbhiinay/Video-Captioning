@@ -65,7 +65,7 @@ def process_task(task: dict) -> dict:
     frame_paths: list[str] = []
 
     try:
-        # ── Stage 1: Download ──────────────────────────────────────────────
+        #Stage 1: Download
         try:
             logger.info(f"[{task_id}] Downloading video from {video_url}…")
             video_path = download_video(video_url)
@@ -74,7 +74,7 @@ def process_task(task: dict) -> dict:
             logger.error(f"[{task_id}] Video download failed: {exc}")
             return result
 
-        # ── Stage 2: Frame extraction ──────────────────────────────────────
+        # Stage 2: Frame extraction
         try:
             logger.info(
                 f"[{task_id}] Extracting up to {FRAME_COUNT} frames from video."
@@ -88,7 +88,7 @@ def process_task(task: dict) -> dict:
             logger.error(f"[{task_id}] Frame extraction failed: {exc}")
             return result
 
-        # ── Stage 3: Perception + caption generation ───────────────────────
+        # Stage 3: Perception + caption generation 
         try:
             logger.info(
                 f"[{task_id}] Sending {len(frame_paths)} frame(s) to Gemini…"
@@ -120,7 +120,7 @@ def process_task(task: dict) -> dict:
         logger.error(f"[{task_id}] Unexpected pipeline error: {exc}")
 
     finally:
-        # ── Cleanup temporary files ────────────────────────────────────────
+        # Cleanup temporary files 
         if video_path and os.path.exists(video_path):
             try:
                 os.remove(video_path)
@@ -145,8 +145,6 @@ def process_task(task: dict) -> dict:
                 f"[{task_id}] Cleaned up {removed_frames}/{len(frame_paths)} temp frame(s)."
             )
 
-    # ── Task 10: Result Validation ─────────────────────────────────────────
-    # Validate result is JSON serializable, has task_id, captions, all styles, no None.
     import json
     try:
         json.dumps(result)
@@ -158,7 +156,6 @@ def process_task(task: dict) -> dict:
         logger.error(f"[{task_id}] Result missing required keys. Falling back.")
         result = {"task_id": task_id, "captions": {style: "" for style in styles}}
 
-    # Check for None values anywhere in the result
     def _has_none(obj):
         if obj is None: return True
         if isinstance(obj, dict): return any(_has_none(v) for v in obj.values())

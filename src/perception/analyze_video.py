@@ -31,7 +31,7 @@ from description.style_engine.prompts import get_unified_prompt, get_repair_prom
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ──────────────────────────────────────────────────────────────────
+# Constants
 
 # Caption style keys that MUST be present in every successful response.
 REQUIRED_CAPTION_STYLES: tuple[str, ...] = (
@@ -59,8 +59,7 @@ _VIDEO_UNDERSTANDING_DEFAULTS: dict[str, Any] = {
     "summary": "",
 }
 
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# Helpers 
 
 def _encode_image(path: str) -> str:
     """Read a JPEG frame, resize it if too large, and encode it as a base64 string."""
@@ -115,7 +114,7 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
     - video_understanding: fills every missing field with a sensible default.
       and normalizes apparent_emotion and camera_motion.
     """
-    # ── captions block ──────────────────────────────────────────────────────
+    # captions block
     if not isinstance(parsed.get("captions"), dict):
         logger.warning("'captions' key missing or not a dict — inserting empty captions.")
         parsed["captions"] = {}
@@ -126,7 +125,7 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
             logger.warning(f"Caption style '{style}' missing — defaulting to empty string.")
             parsed["captions"][style] = ""
 
-    # ── video_understanding block ───────────────────────────────────────────
+    # video_understanding block
     if not isinstance(parsed.get("video_understanding"), dict):
         logger.warning("'video_understanding' key missing — inserting defaults.")
         parsed["video_understanding"] = dict(_VIDEO_UNDERSTANDING_DEFAULTS)
@@ -156,7 +155,6 @@ def _validate_and_patch(parsed: dict, requested_styles: list[str]) -> dict:
             )
             vu["camera_motion"] = "unknown"
 
-    # ── Task 15: Output Verification & Repair ────────────────────────────────
     for style in all_expected_styles:
         caption = parsed["captions"].get(style, "").strip()
 
@@ -290,7 +288,7 @@ def _call_gemini_vlm(model_name: str, frame_paths: list[str], prompt: str) -> st
         ) from exc
 
 
-# ── Public API ─────────────────────────────────────────────────────────────────
+# Public API
 
 def analyze_video(
     frame_paths: list[str],
@@ -307,7 +305,7 @@ def analyze_video(
 
     unified_prompt = get_unified_prompt(styles)
 
-    # ── Attempt 1: primary call with VLM fallback ───────────────────────────
+    # Attempt 1: primary call with VLM fallback
     logger.info(
         f"Calling Gemini with {len(frame_paths)} frames "
         f"for perception + caption generation (styles={styles})."
@@ -349,7 +347,7 @@ def analyze_video(
                 "First Gemini response was not valid JSON — attempting JSON repair retry."
             )
 
-    # ── Attempt 2: repair-retry ───────────────────────────────────────────
+    # Attempt 2: repair-retry
     if parsed is None and raw_text is not None and not api_call_failed:
         logger.info("Sending JSON repair prompt to Gemini (retry attempt 1).")
         repair_prompt = get_repair_prompt(styles, raw_text)
@@ -386,7 +384,7 @@ def analyze_video(
             "Returning graceful empty captions."
         )
 
-    # ── Graceful fallback ───────────────────────────────────────────────────
+    # Graceful fallback
     if parsed is None:
         logger.warning(
             f"Caption generation failed for this task after attempts — "
@@ -394,7 +392,7 @@ def analyze_video(
         )
         return _empty_result(styles)
 
-    # ── Validate & patch all required keys ──────────────────────────────────
+    # Validate & patch all required keys
     result = _validate_and_patch(parsed, styles)
     logger.info(
         f"Caption generation complete. "

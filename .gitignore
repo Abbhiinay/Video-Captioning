@@ -26,3 +26,7 @@ env/
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# Documentation & Interview Guides
+PROJECTS_INTERVIEW_GUIDE.md
+ALGORITHMS_EXPLANATION_GUIDE.md
